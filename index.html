@@ -1,0 +1,141 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#101b35">
+  <meta name="description" content="The NXT Realty — Exceptional Spaces. Elevated Living. Explore verified properties for sale across Mumbai, Navi Mumbai, Ambernath, Badlapur and Kalyan.">
+  <title>The NXT Realty | Exceptional Spaces. Elevated Living.</title>
+  <link rel="icon" href="assets/nxt-realty-logo.png">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div class="announcement">PROPERTY SALES • MUMBAI & THE MMR REGION</div>
+  <header class="site-header">
+    <a class="brand" href="#home" aria-label="The NXT Realty home">
+      <img src="assets/nxt-realty-logo.png" alt="The NXT Realty logo">
+      <span class="brand-copy"><strong>THE NXT REALTY</strong><small>EXCEPTIONAL SPACES. ELEVATED LIVING.</small></span>
+    </a>
+    <button class="menu-toggle" id="menuToggle" aria-label="Open navigation" aria-expanded="false">☰</button>
+    <nav id="mainNav">
+      <a href="#home">Home</a>
+      <a href="#properties">Properties for Sale</a>
+      <a href="#sell">Sell With Us</a>
+      <a href="#about">About</a>
+      <a class="nav-cta" href="#contact">Contact Us <span>↗</span></a>
+    </nav>
+  </header>
+
+  <main>
+    <section class="hero" id="home">
+      <img class="hero-image" src="assets/nxt-realty-cover.png" alt="The NXT Realty premium navy-and-gold real estate brand artwork">
+      <div class="hero-shade"></div>
+      <div class="hero-content">
+        <p class="eyebrow"><span></span> YOUR NEXT CHAPTER STARTS HERE</p>
+        <h1>Find a place<br>to <em>belong.</em></h1>
+        <p class="hero-sub">Thoughtfully chosen properties. Clear guidance. A smoother journey to your next home.</p>
+        <div class="hero-actions">
+          <a class="button button-gold" href="#properties">Explore properties <span>↗</span></a>
+          <a class="button button-outline" href="#sell">Looking to sell?</a>
+        </div>
+        <div class="hero-note"><span class="gold-line"></span> RESIDENTIAL PROPERTY SALES ACROSS MMR</div>
+      </div>
+      <div class="hero-mark">NXT <span>REALTY</span></div>
+    </section>
+
+    <section class="trust-strip" aria-label="Service areas">
+      <div><span class="strip-label">LOCAL KNOWLEDGE</span><strong>Mumbai</strong></div>
+      <div><span class="strip-label">CONNECTED LIVING</span><strong>Navi Mumbai</strong></div>
+      <div><span class="strip-label">GROWING COMMUNITIES</span><strong>Ambernath</strong></div>
+      <div><span class="strip-label">MORE ROOM TO GROW</span><strong>Badlapur · Kalyan</strong></div>
+    </section>
+
+    <section class="section properties-section" id="properties">
+      <div class="section-heading">
+        <div>
+          <p class="eyebrow dark-eyebrow">THE RIGHT PLACE, NEXT</p>
+          <h2>Properties for <em>sale.</em></h2>
+          <p class="section-intro">Explore available homes and opportunities across our service areas.</p>
+        </div>
+        <div class="listing-count"><strong id="listingCount">0</strong><span>verified listings</span></div>
+      </div>
+      <div class="property-tools">
+        <label class="search-box"><span aria-hidden="true">⌕</span><input id="propertySearch" type="search" placeholder="Search by location or property name" aria-label="Search properties"></label>
+        <label class="select-wrap"><span class="sr-only">Filter by location</span>
+          <select id="locationFilter"><option value="">All locations</option><option>Mumbai</option><option>Navi Mumbai</option><option>Ambernath</option><option>Badlapur</option><option>Kalyan</option></select>
+        </label>
+        <label class="select-wrap"><span class="sr-only">Filter by property type</span>
+          <select id="typeFilter"><option value="">All property types</option><option>Apartment</option><option>House</option><option>Plot</option><option>Commercial</option></select>
+        </label>
+      </div>
+      <div id="propertyGrid" class="property-grid" aria-live="polite"></div>
+      <div class="empty-state" id="emptyState">
+        <div class="empty-icon">⌂</div>
+        <p class="eyebrow dark-eyebrow">CURATED FOR YOU</p>
+        <h3>Verified listings are coming soon.</h3>
+        <p>We’re preparing property details so you can enquire with confidence. Contact us to share what you’re looking for.</p>
+        <button class="button button-navy" data-whatsapp="property">Tell us what you need <span>↗</span></button>
+      </div>
+      <p class="no-results" id="noResults" hidden>No properties match those filters. Try a different search or clear your filters.</p>
+    </section>
+
+    <section class="sell-band" id="sell">
+      <div class="sell-art" aria-hidden="true"><div class="art-frame"></div><div class="art-sun"></div><div class="art-building b1"></div><div class="art-building b2"></div><div class="art-building b3"></div></div>
+      <div class="sell-copy">
+        <p class="eyebrow">FOR PROPERTY OWNERS</p>
+        <h2>Ready for your<br>property’s <em>next chapter?</em></h2>
+        <p>Tell us a little about your property. We’ll help you understand the next steps to bring it to market.</p>
+        <button class="button button-gold" data-whatsapp="sell">Discuss your property <span>↗</span></button>
+      </div>
+    </section>
+
+    <section class="section about-section" id="about">
+      <div class="about-heading">
+        <p class="eyebrow dark-eyebrow">A MORE CONSIDERED PROPERTY JOURNEY</p>
+        <h2>Exceptional spaces.<br><em>Elevated living.</em></h2>
+      </div>
+      <div class="about-copy">
+        <p class="lead">The NXT Realty helps people explore property opportunities across Mumbai and the wider MMR region.</p>
+        <p>Our focus is straightforward: clear communication, thoughtful guidance and property information you can review before taking the next step.</p>
+        <div class="values">
+          <div><span>01</span><strong>Local insight</strong><p>Knowledge of the communities we serve.</p></div>
+          <div><span>02</span><strong>Clear guidance</strong><p>Support from first enquiry to next steps.</p></div>
+          <div><span>03</span><strong>Buyer-focused</strong><p>Start with your needs and priorities.</p></div>
+        </div>
+      </div>
+    </section>
+
+    <section class="contact-section" id="contact">
+      <div class="contact-card">
+        <div>
+          <p class="eyebrow">LET’S TALK PROPERTY</p>
+          <h2>Your next move<br>starts with a <em>conversation.</em></h2>
+          <p>Looking to buy or sell? Share a few details and we’ll help you take the next step.</p>
+        </div>
+        <form id="contactForm">
+          <label>Your name<input name="name" required placeholder="Enter your name" autocomplete="name"></label>
+          <label>I’m interested in
+            <select name="interest" required><option value="Buying a property">Buying a property</option><option value="Selling a property">Selling a property</option><option value="General enquiry">General enquiry</option></select>
+          </label>
+          <label>Preferred area<input name="area" placeholder="e.g. Kalyan, Ambernath"></label>
+          <label>Message<textarea name="message" rows="3" placeholder="Tell us what you're looking for"></textarea></label>
+          <button class="button button-gold button-full" type="submit">Send enquiry <span>↗</span></button>
+          <p class="form-note" id="formNote">Your enquiry will open in WhatsApp once the business number is added to the site settings.</p>
+        </form>
+      </div>
+    </section>
+  </main>
+
+  <footer class="site-footer">
+    <div class="footer-brand">
+      <img src="assets/nxt-realty-logo.png" alt="">
+      <div><strong>THE NXT REALTY</strong><small>EXCEPTIONAL SPACES. ELEVATED LIVING.</small></div>
+    </div>
+    <p>Property sales across Mumbai, Navi Mumbai, Ambernath, Badlapur and Kalyan.</p>
+    <div class="footer-bottom"><span>© <span id="year"></span> The NXT Realty</span><span>Made for your next chapter.</span><a href="#home">Back to top ↑</a></div>
+  </footer>
+  <script src="config.js"></script>
+  <script src="properties.js"></script>
+  <script src="script.js"></script>
+</body>
+</html>
