@@ -73,12 +73,20 @@
     if (!form.reportValidity()) return;
     const data = new FormData(form);
     const get = key => String(data.get(key) || '').trim();
+    const phone = get('phone');
     const status = document.getElementById('formMessage');
+    if (!/^[6-9][0-9]{9}$/.test(phone)) {
+      const phoneField = form.querySelector('[name="phone"]');
+      phoneField.setCustomValidity("Enter a valid 10-digit Indian mobile number starting with 6, 7, 8 or 9.");
+      phoneField.reportValidity();
+      phoneField.addEventListener("input", () => phoneField.setCustomValidity(""), { once: true });
+      return;
+    }
     const button = form.querySelector('[type="submit"]');
     submitLead({
       source: "Property Enquiry Form",
       name: get('name'),
-      phone: get('phone'),
+      phone,
       email: get('email'),
       location: get('location'),
       requirement: get('requirement'),
