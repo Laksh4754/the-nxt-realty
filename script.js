@@ -152,8 +152,28 @@
     const form = event.currentTarget;
     if (!form.reportValidity()) return;
     const d = new FormData(form), get = key => String(d.get(key) || "").trim();
-    whatsapp(["Hello The NXT Realty, please help me with a property requirement.","",`Requirement: ${get("needType")}`,`Location: ${get("needLocation")}`,`Configuration: ${get("needBhk")}`,`Budget: ${get("needBudget")}`,`Name: ${get("needName")}`,`Phone: ${get("needPhone")}`,"Please share suitable options and verified details. Thank you."].join("\\n"));
+    const endpoint = String(config.googleSheetsWebAppUrl || "").trim();
+    const message = $("requirementStatus") || form.querySelector(".tool-note");
+    const button = form.querySelector('[type="submit"]');
+    if (!endpoint) {
+      message.textContent = "Lead storage is not connected yet. Please use Chat with us for now, or try again after setup is complete.";
+      return;
+    }
+    const original = button.textContent;
+    button.disabled = true; button.textContent = "Submitting…";
+    message.textContent = "Submitting your requirement…";
+    fetch(endpoint, {method:"POST",mode:"no-cors",headers:{"Content-Type":"text/plain;charset=utf-8"},body:JSON.stringify({
+      source:"Property Brief Form",name:get("needName"),phone:get("needPhone"),email:"",
+      requirement:get("needType"),location:get("needLocation"),propertyType:get("needBhk"),budget:get("needBudget"),page:window.location.href
+    })}).then(() => {
+      message.textContent = "Thank you! Your requirement has been submitted. Our team will follow up.";
+      form.reset();
+    }).catch(error => {
+      console.error("Lead submission failed:",error);
+      message.textContent = "We couldn't submit your requirement just now. Please try again or use Chat with us.";
+    }).finally(() => {button.disabled=false;button.textContent=original;});
   });
+
   async function loadProperties() {
     if (!supabaseLib?.createClient || !config.supabaseUrl || !config.supabaseAnonKey) {
       status.textContent = "Listings are temporarily unavailable. Please contact our team.";
