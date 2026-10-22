@@ -15,6 +15,28 @@
   }));
   document.getElementById('year').textContent = new Date().getFullYear();
 
+  async function submitLead(lead, statusElement, button) {
+    const endpoint = String((window.NXT_CONFIG || {}).googleSheetsWebAppUrl || "").trim();
+    if (!endpoint) {
+      statusElement.textContent = "Your form is ready, but lead storage is not connected yet. Please use Chat with us for now, or try again after setup is complete.";
+      return;
+    }
+    const original = button.textContent;
+    button.disabled = true;
+    button.textContent = "Submitting…";
+    statusElement.textContent = "Submitting your enquiry securely…";
+    try {
+      await fetch(endpoint, { method: "POST", mode: "no-cors", headers: { "Content-Type": "text/plain;charset=utf-8" }, body: JSON.stringify(lead) });
+      statusElement.textContent = "Thank you! Your enquiry has been submitted. Our team will follow up with you.";
+      document.getElementById("enquiryForm")?.reset();
+    } catch (error) {
+      console.error("Lead submission failed:", error);
+      statusElement.textContent = "We couldn't submit your enquiry just now. Please try again or use Chat with us.";
+    } finally {
+      button.disabled = false;
+      button.textContent = original;
+    }
+  }
   function openWhatsApp(message) {
     const url = `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(message)}`;
     window.open(url, '_blank', 'noopener,noreferrer');
@@ -51,19 +73,18 @@
     if (!form.reportValidity()) return;
     const data = new FormData(form);
     const get = key => String(data.get(key) || '').trim();
-    const message = [
-      'Hello The NXT Realty, I would like to make a property enquiry.', '',
-      `Name: ${get('name')}`,
-      `Phone: ${get('phone')}`,
-      get('email') ? `Email: ${get('email')}` : '',
-      `Preferred location: ${get('location') || 'Not specified'}`,
-      `Requirement: ${get('requirement') || 'Help me find a property'}`,
-      `Property type: ${get('propertyType') || 'Not decided yet'}`,
-      `Budget: ${get('budget') || 'Not specified'}`,
-      '', 'Please let me know the next steps. Thank you.'
-    ].filter(Boolean).join('\n');
     const status = document.getElementById('formMessage');
-    status.textContent = 'WhatsApp is opening with your enquiry details. Please review the message and press Send to contact The NXT Realty.';
-    openWhatsApp(message);
+    const button = form.querySelector('[type="submit"]');
+    submitLead({
+      source: "Property Enquiry Form",
+      name: get('name'),
+      phone: get('phone'),
+      email: get('email'),
+      location: get('location'),
+      requirement: get('requirement'),
+      propertyType: get('propertyType'),
+      budget: get('budget'),
+      page: window.location.href
+    }, status, button);
   });
 })();
