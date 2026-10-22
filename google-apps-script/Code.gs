@@ -4,8 +4,11 @@ const HEADERS = ["Submitted At","Source","Name","Phone","Email","Requirement","L
 function doPost(e) {
   try {
     const lead = JSON.parse((e && e.postData && e.postData.contents) || "{}");
-    if (!String(lead.name || "").trim() || !String(lead.phone || "").trim()) {
-      return json_({ ok: false, error: "Name and phone are required." });
+    if (!String(lead.name || "").trim()) {
+      return json_({ ok: false, error: "Name is required." });
+    }
+    if (!/^[6-9][0-9]{9}$/.test(String(lead.phone || "").trim())) {
+      return json_({ ok: false, error: "Enter a valid 10-digit Indian mobile number starting with 6, 7, 8 or 9." });
     }
     const props = PropertiesService.getScriptProperties();
     let spreadsheetId = props.getProperty("LEADS_SPREADSHEET_ID");
