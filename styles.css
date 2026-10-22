@@ -80,3 +80,7 @@
 .emi-result strong{font:500 32px var(--serif);color:var(--gold-light)}
 @media(max-width:800px){.tools-heading{align-items:start;flex-direction:column}.tools-grid{grid-template-columns:1fr}}
 @media(max-width:520px){.tool-form-grid,.emi-two{grid-template-columns:1fr}.tools-section{padding:65px 0}.requirement-panel,.emi-panel{padding:22px 16px}}
+
+/* Header shortcut for the live property catalogue */
+.site-header nav .nav-listed{display:inline-flex;align-items:center;justify-content:center;padding:10px 13px;border:1px solid var(--gold);color:var(--navy);white-space:nowrap;transition:background .2s,color .2s}.site-header nav .nav-listed:hover{background:var(--gold);color:var(--navy)}
+@media(max-width:650px){.site-header nav .nav-listed{justify-content:flex-start;border:0;border-bottom:1px solid #eee;padding:13px 8px}}
