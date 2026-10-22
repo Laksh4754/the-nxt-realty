@@ -1,0 +1,37 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex,nofollow"><meta name="theme-color" content="#101d35">
+<title>Property Manager | The NXT Realty</title><link rel="stylesheet" href="styles.css">
+<style>
+.admin-page{min-height:100vh;background:#f6f4ef;padding:36px 20px 70px}.admin-shell{max-width:1120px;margin:auto}.admin-top{display:flex;justify-content:space-between;align-items:center;gap:18px;margin-bottom:28px}.admin-top h1{font-size:clamp(32px,5vw,48px);margin:0}.admin-panel{background:#fff;border:1px solid #e4dfd4;padding:26px;margin:18px 0}.admin-form-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px}.admin-form-grid label{display:grid;gap:6px;font-size:12px;font-weight:700}.admin-form-grid input,.admin-form-grid select,.admin-form-grid textarea{width:100%;min-width:0;padding:12px;border:1px solid #d9dce2;background:#fff;color:#15223a;border-radius:0}.admin-form-grid .wide{grid-column:1/-1}.admin-actions{display:flex;flex-wrap:wrap;gap:10px;margin-top:20px}.admin-status{font-size:13px;padding:12px 14px;background:#f6f4ef;margin:14px 0}.admin-list{display:grid;gap:10px}.admin-item{display:flex;justify-content:space-between;align-items:center;gap:16px;padding:14px;border:1px solid #e4dfd4}.admin-item h3{margin:0 0 4px;font-size:16px}.admin-item p{margin:0;font-size:12px;color:#667187}.admin-item-actions{display:flex;gap:8px;flex-wrap:wrap}.admin-item-actions button,.admin-secondary{padding:9px 12px;border:1px solid #d9dce2;background:#fff;color:#15223a;font-weight:700;font-size:12px}.admin-danger{color:#9c2727!important;border-color:#d8aaaa!important}.admin-muted{font-size:12px;color:#667187;line-height:1.7}.admin-hidden{display:none!important}.admin-checkbox{display:flex!important;align-items:center;gap:10px!important}.admin-checkbox input{width:auto!important}.admin-photo-preview{max-width:180px;max-height:120px;object-fit:cover;display:block}.admin-headline{display:flex;align-items:end;justify-content:space-between;gap:12px;flex-wrap:wrap}.admin-headline h2{margin:0;font-size:27px}@media(max-width:650px){.admin-page{padding:22px 12px}.admin-panel{padding:17px}.admin-form-grid{grid-template-columns:1fr}.admin-form-grid .wide{grid-column:auto}.admin-item{align-items:flex-start;flex-direction:column}.admin-top{align-items:flex-start;flex-direction:column}}
+</style>
+</head><body>
+<header class="site-header"><a class="brand" href="./" aria-label="The NXT Realty home"><span class="brand-mark">N<span>+</span></span><span class="brand-name">THE NXT REALTY<small>PROPERTY MANAGEMENT</small></span></a><a href="./" class="text-link">View public website ↗</a></header>
+<main class="admin-page"><div class="admin-shell">
+<div class="admin-top"><div><p class="eyebrow">PRIVATE ADMIN AREA</p><h1>Property Manager<span class="gold-dot">.</span></h1><p class="admin-muted">Create, edit, publish, unpublish and remove property listings in one place.</p></div><button id="signOut" class="admin-secondary admin-hidden" type="button">Sign out</button></div>
+<section id="loginPanel" class="admin-panel"><h2>Admin sign in</h2><p class="admin-muted">Use your authorised Supabase admin account. The page checks the signed-in account before showing property controls.</p><form id="loginForm" class="admin-form-grid"><label>Email<input name="email" type="email" autocomplete="username" required></label><label>Password<input name="password" type="password" autocomplete="current-password" required></label><div class="wide"><button class="button button-dark" type="submit">Sign in ↗</button></div></form><p id="loginStatus" class="admin-status" role="status">Sign in to manage listings.</p></section>
+<section id="managerPanel" class="admin-hidden">
+<div class="admin-panel"><div class="admin-headline"><div><p class="eyebrow">YOUR CATALOGUE</p><h2>Manage properties</h2></div><button id="newProperty" class="button button-dark" type="button">+ New property</button></div><p class="admin-muted">Only listings marked Active appear publicly. Drafts remain hidden. Changes save to Supabase.</p><p id="managerStatus" class="admin-status" role="status">Loading properties…</p><div id="adminPropertyList" class="admin-list"></div></div>
+<div id="editorPanel" class="admin-panel admin-hidden"><div class="admin-headline"><div><p class="eyebrow">PROPERTY DETAILS</p><h2 id="editorTitle">Add a property</h2></div><button id="cancelEdit" class="admin-secondary" type="button">Cancel</button></div>
+<form id="propertyForm"><input type="hidden" name="id"><div class="admin-form-grid">
+<label>Project / property name *<input name="title" maxlength="180" required></label>
+<label>Developer / builder<input name="builder" maxlength="160"></label>
+<label>Location *<input name="location" maxlength="220" required></label>
+<label>Property type<select name="property_type"><option>Residential</option><option>Apartment</option><option>Villa</option><option>Plot / Land</option><option>Commercial</option><option>Office</option><option>Shop</option><option>Other</option></select></label>
+<label>Price / price range<input name="price" maxlength="120" placeholder="e.g. ₹85 lakh onwards or Price on request"></label>
+<label>Purpose<select name="purpose"><option value="buy">Buy</option><option value="rent">Rent</option><option value="investment">Investment</option></select></label>
+<label>BHK / configuration<input name="bhk" maxlength="40" placeholder="e.g. 2 & 3 or 2 BHK"></label>
+<label>Carpet area / size<input name="area" maxlength="100" placeholder="e.g. 696–1,039 sq ft carpet"></label>
+<label>Listing status<select name="status"><option value="draft">Draft — hidden</option><option value="active">Active — visible publicly</option></select></label>
+<label class="admin-checkbox"><input name="featured" type="checkbox"> Feature this property</label>
+<label class="wide">Short card details<textarea name="details" rows="2" maxlength="500" placeholder="Short summary shown on the property card"></textarea></label>
+<label class="wide">Full description, amenities and important details<textarea name="description" rows="6" maxlength="12000" placeholder="Project description, amenities, connectivity, RERA number, disclaimers…"></textarea></label>
+<label class="wide">Project image URL<input name="image_url" maxlength="1200" type="url" placeholder="https://…"></label>
+<label class="wide">Or upload an image (JPG, PNG, WebP)<input id="imageFile" name="imageFile" type="file" accept="image/jpeg,image/png,image/webp"><span class="admin-muted">Uploads to the public property-photos storage bucket. A successful upload fills the image URL field.</span><img id="imagePreview" class="admin-photo-preview admin-hidden" alt="Selected property preview"></label>
+</div><div class="admin-actions"><button class="button button-dark" type="submit">Save property ↗</button><button id="saveDraft" class="admin-secondary" type="button">Save as draft</button><button id="deleteProperty" class="admin-secondary admin-danger admin-hidden" type="button">Delete property</button></div><p id="saveStatus" class="admin-status" role="status">Fields marked * are required.</p></form></div>
+</section>
+</div></main>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script><script src="config.js"></script><script src="admin.js"></script>
+</body></html>
