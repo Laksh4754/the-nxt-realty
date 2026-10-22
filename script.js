@@ -169,52 +169,14 @@
         bhk:p.bhk || "", area:p.area || "", featured:Boolean(p.featured), builder:p.builder || p.developer || "",
         purpose:p.purpose || p.listing_type || "", createdAt:p.created_at, statusText:p.status
       }));
-      // Brochure-based first showcase listing. Keep pricing and availability unconfirmed until the team verifies them.
-      const hawareTitle = "Haware Forever Vashi";
-      if (!properties.some(p => String(p.title || "").toLowerCase().includes("haware forever vashi"))) {
-        properties.unshift({
-          id:"nxt-showcase-haware-forever-vashi",
-          title:hawareTitle,
-          location:"Sector 19E, Vashi, Navi Mumbai",
-          type:"Residential",
-          price:"Price on request",
-          details:"Smart 2 & 3 bed homes with smart home automation and thoughtfully planned layouts.",
-          description:"Haware Forever Vashi is a residential project at Sector 19E, Vashi, Navi Mumbai. The supplied brochure describes smart 2 and 3 bed homes, a T-shaped tower layout designed for natural light and ventilation, open views, and smart home automation. Listed carpet-area options in the supplied floor-plan material are 696, 772, 1,023 and 1,039 sq ft, with a combined 2+2 BHK Jodi option of 1,544 sq ft. Brochure-listed amenities include a swimming pool with deck, rooftop garden, gymnasium, yoga and meditation zone, senior citizens’ corner, kids’ play area, and multipurpose hall with open-air lawn. Site address: Intelligentia Centroid, Phase 2, Sector 19E, Vashi, Navi Mumbai - 400703. MahaRERA registration number shown in the brochure: PR1330002501547. Pricing, inventory and possession details have not been confirmed; contact The NXT Realty for current details.",
-          image:"assets/project-residential.png",
-          bhk:"2 & 3",
-          area:"696–1,039 sq ft carpet; 1,544 sq ft Jodi option",
-          featured:true,
-          builder:"Haware Properties",
-          purpose:"buy",
-          createdAt:"2026-10-23T00:00:00+05:30",
-          statusText:"showcase"
-        });
-      }
       fillFilters();
       render();
     } catch (error) {
       console.error("Unable to load public property listings:", error);
-      properties = [{
-        id:"nxt-showcase-haware-forever-vashi",
-        title:"Haware Forever Vashi",
-        location:"Sector 19E, Vashi, Navi Mumbai",
-        type:"Residential",
-        price:"Price on request",
-        details:"Smart 2 & 3 bed homes with smart home automation and thoughtfully planned layouts.",
-        description:"Haware Forever Vashi is a residential project at Sector 19E, Vashi, Navi Mumbai. The supplied brochure describes smart 2 and 3 bed homes, a T-shaped tower layout designed for natural light and ventilation, open views, and smart home automation. Listed carpet-area options in the supplied floor-plan material are 696, 772, 1,023 and 1,039 sq ft, with a combined 2+2 BHK Jodi option of 1,544 sq ft. Brochure-listed amenities include a swimming pool with deck, rooftop garden, gymnasium, yoga and meditation zone, senior citizens’ corner, kids’ play area, and multipurpose hall with open-air lawn. Site address: Intelligentia Centroid, Phase 2, Sector 19E, Vashi, Navi Mumbai - 400703. MahaRERA registration number shown in the brochure: PR1330002501547. Pricing, inventory and possession details have not been confirmed; contact The NXT Realty for current details.",
-        image:"assets/project-residential.png",
-        bhk:"2 & 3",
-        area:"696–1,039 sq ft carpet; 1,544 sq ft Jodi option",
-        featured:true,
-        builder:"Haware Properties",
-        purpose:"buy",
-        createdAt:"2026-10-23T00:00:00+05:30",
-        statusText:"showcase"
-      }];
+      properties = [];
       fillFilters();
       render();
-      status.textContent = "Showing our first featured project. Current pricing and availability must be confirmed.";
-    }
+      status.textContent = "Listings are temporarily unavailable. Please contact our team.";
   }
   loadProperties();
 })();
