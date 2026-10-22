@@ -132,6 +132,28 @@
     document.querySelectorAll("[data-collection]").forEach(b => b.classList.toggle("active", b.dataset.collection === activeCollection));
     render();
   }));
+  function formatINR(value) {
+    return new Intl.NumberFormat("en-IN",{style:"currency",currency:"INR",maximumFractionDigits:0}).format(value);
+  }
+  function calculateEMI() {
+    const principal = Number($("emiAmount")?.value || 0);
+    const annualRate = Number($("emiRate")?.value || 0);
+    const years = Number($("emiYears")?.value || 0);
+    if (!principal || !annualRate || !years || principal < 0 || annualRate <= 0 || years <= 0) return;
+    const months = years * 12, rate = annualRate / 1200;
+    const emi = principal * rate * Math.pow(1 + rate, months) / (Math.pow(1 + rate, months) - 1);
+    $("emiOutput").textContent = formatINR(emi);
+    $("emiBreakdown").textContent = "Total repayment: " + formatINR(emi * months) + " · Interest: " + formatINR(emi * months - principal);
+  }
+  ["emiAmount","emiRate","emiYears"].forEach(id => $(id)?.addEventListener("input", calculateEMI));
+  calculateEMI();
+  $("requirementForm")?.addEventListener("submit", event => {
+    event.preventDefault();
+    const form = event.currentTarget;
+    if (!form.reportValidity()) return;
+    const d = new FormData(form), get = key => String(d.get(key) || "").trim();
+    whatsapp(["Hello The NXT Realty, please help me with a property requirement.","",`Requirement: ${get("needType")}`,`Location: ${get("needLocation")}`,`Configuration: ${get("needBhk")}`,`Budget: ${get("needBudget")}`,`Name: ${get("needName")}`,`Phone: ${get("needPhone")}`,"Please share suitable options and verified details. Thank you."].join("\\n"));
+  });
   async function loadProperties() {
     if (!supabaseLib?.createClient || !config.supabaseUrl || !config.supabaseAnonKey) {
       status.textContent = "Listings are temporarily unavailable. Please contact our team.";
