@@ -33,7 +33,38 @@
     status("managerStatus","Loading property records…");
     const {data,error}=await client.from("properties").select("*").order("created_at",{ascending:false});
     if(error){status("managerStatus","Could not load properties: "+error.message+". Check that your admin account has database access and the properties table policies permit admin reads.");return;}
-    records=data||[];renderList();status("managerStatus",records.length+" database "+(records.length===1?"property":"properties")+". Active listings are eligible to appear on the public site.");
+    records=data||[];
+    const hasHaware=records.some(p=>String(p.title||"").toLowerCase().includes("haware forever vashi"));
+    let seedButton=$("seedHaware");
+    if(!hasHaware){
+      if(!seedButton){
+        seedButton=document.createElement("button");seedButton.id="seedHaware";seedButton.type="button";seedButton.className="admin-secondary";
+        seedButton.textContent="Add Haware Forever Vashi to admin";
+        $("newProperty").insertAdjacentElement("afterend",seedButton);
+        seedButton.addEventListener("click",seedHaware);
+      }
+      show(seedButton,true);
+    }else show(seedButton,false);
+    renderList();status("managerStatus",records.length+" database "+(records.length===1?"property":"properties")+". "+(hasHaware?"Haware Forever Vashi is editable here. ":"Use the Haware import button to add the showcase project to the database. ")+"Active listings are eligible to appear on the public site.");
+  }
+  async function seedHaware(){
+    const existing=records.find(p=>String(p.title||"").toLowerCase().includes("haware forever vashi"));
+    if(existing){editRecord(existing);return;}
+    const payload={
+      title:"Haware Forever Vashi",
+      location:"Sector 19E, Vashi, Navi Mumbai",
+      property_type:"Residential",
+      price:"Price on request",
+      details:"Smart 2 & 3 bed homes with smart home automation and thoughtfully planned layouts.",
+      description:"Haware Forever Vashi is a residential project at Sector 19E, Vashi, Navi Mumbai. The supplied brochure describes smart 2 and 3 bed homes, a T-shaped tower layout designed for natural light and ventilation, open views, and smart home automation. Listed carpet-area options in the supplied floor-plan material are 696, 772, 1,023 and 1,039 sq ft, with a combined 2+2 BHK Jodi option of 1,544 sq ft. Brochure-listed amenities include a swimming pool with deck, rooftop garden, gymnasium, yoga and meditation zone, senior citizens’ corner, kids’ play area, and multipurpose hall with open-air lawn. Site address: Intelligentia Centroid, Phase 2, Sector 19E, Vashi, Navi Mumbai - 400703. MahaRERA registration number shown in the brochure: PR1330002501547. Pricing, inventory and possession details are not confirmed; verify with the developer before publishing.",
+      image_url:null,bhk:"2 & 3",area:"696–1,039 sq ft carpet; 1,544 sq ft Jodi option",
+      featured:true,status:"active",created_at:new Date().toISOString(),updated_at:new Date().toISOString()
+    };
+    status("managerStatus","Adding Haware Forever Vashi to the database…");
+    const {error}=await client.from("properties").insert(payload);
+    if(error){status("managerStatus","Could not add Haware: "+error.message);return;}
+    status("managerStatus","Haware Forever Vashi is now a database listing. You can edit, unpublish or delete it here.");
+    await loadRecords();
   }
   async function uploadImage(file){
     if(!file)return null;
