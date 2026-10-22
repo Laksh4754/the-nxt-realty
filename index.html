@@ -33,10 +33,19 @@
   <div class="live-listings" id="liveListings">
     <div class="listings-toolbar">
       <div><p class="eyebrow">AVAILABLE PROPERTY OPTIONS</p><h3>Featured properties</h3><p class="listings-intro">Browse currently published listings from The NXT Realty.</p></div>
-      <div class="listing-filters"><label>Search<input id="propertySearch" type="search" placeholder="Project, area or keyword" aria-label="Search properties"></label><label>Location<select id="locationFilter"><option value="">All locations</option></select></label><label>Property type<select id="typeFilter"><option value="">All types</option></select></label></div>
+      <div class="listing-filters">
+        <label>Search<input id="propertySearch" type="search" placeholder="Project, area or keyword" aria-label="Search properties"></label>
+        <label>Looking for<select id="purposeFilter"><option value="">Buy or rent</option><option value="buy">Buy</option><option value="rent">Rent</option><option value="investment">Investment</option></select></label>
+        <label>Location<select id="locationFilter"><option value="">All locations</option></select></label>
+        <label>Property type<select id="typeFilter"><option value="">All types</option></select></label>
+        <label>BHK<select id="bhkFilter"><option value="">Any BHK</option><option value="1">1 BHK</option><option value="2">2 BHK</option><option value="3">3 BHK</option><option value="4">4+ BHK</option></select></label>
+        <label>Budget<select id="budgetFilter"><option value="">Any budget</option><option value="3000000">Up to ₹30 lakh</option><option value="5000000">Up to ₹50 lakh</option><option value="7500000">Up to ₹75 lakh</option><option value="10000000">Up to ₹1 crore</option><option value="20000000">Up to ₹2 crore</option></select></label>
+        <label>Sort by<select id="sortFilter"><option value="featured">Featured first</option><option value="price-low">Price: low to high</option><option value="price-high">Price: high to low</option><option value="newest">Newest</option></select></label>
+      </div>
     </div>
-    <p class="listing-status" id="listingStatus" role="status">Loading available properties…</p>
+    <div class="catalogue-tools"><div class="catalogue-chips" aria-label="Quick collections"><button type="button" data-collection="featured">Featured</button><button type="button" data-collection="ready">Ready to move</button><button type="button" data-collection="affordable">Affordable homes</button><button type="button" data-collection="investment">Investment picks</button></div><button type="button" id="savedToggle" class="saved-toggle" aria-pressed="false">♡ Saved properties <span id="savedCount">0</span></button></div><p class="listing-status" id="listingStatus" role="status">Loading available properties…</p>
     <div class="property-grid" id="propertyGrid" aria-live="polite"></div>
+    <dialog id="propertyDialog" class="property-dialog" aria-label="Property details"><button type="button" class="dialog-close" id="dialogClose" aria-label="Close details">×</button><div id="propertyDialogContent"></div></dialog>
     <p class="listing-empty" id="emptyState" hidden>No published properties yet. Please contact us and we’ll help you find suitable options.</p>
     <p class="listing-empty" id="noResults" hidden>No properties match those filters. Try a different search.</p>
   </div>
