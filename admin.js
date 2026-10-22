@@ -13,13 +13,13 @@
   function formValue(name){return String(new FormData(form).get(name)||"").trim();}
   function setField(name,value){const el=form.elements.namedItem(name);if(!el)return;if(el.type==="checkbox")el.checked=Boolean(value);else el.value=value??"";}
   function resetEditor(){
-    form.reset();setField("id","");setField("status","draft");setField("property_type","Residential");setField("purpose","buy");
+    form.reset();setField("id","");setField("status","draft");setField("property_type","Residential");
     $("imagePreview").removeAttribute("src");show($("imagePreview"),false);show($("deleteProperty"),false);
     $("editorTitle").textContent="Add a property";show($("editorPanel"));status("saveStatus","New listings start as Draft. Set status to Active when you are ready to publish.");
   }
   function editRecord(p){
     resetEditor();
-    ["id","title","builder","location","property_type","price","purpose","bhk","area","status","featured","details","description","image_url"].forEach(k=>setField(k,p[k]));
+    ["id","title","builder","location","property_type","price","bhk","area","status","featured","details","description","image_url"].forEach(k=>setField(k,p[k]));
     $("editorTitle").textContent="Edit property";show($("deleteProperty"),true);
     if(p.image_url){$("imagePreview").src=p.image_url;show($("imagePreview"));}
     $("editorPanel").scrollIntoView({behavior:"smooth",block:"start"});
@@ -61,7 +61,7 @@
         description:formValue("description"),image_url:formValue("image_url")||null,
         status:forceDraft?"draft":formValue("status"),featured:form.elements.namedItem("featured").checked,
         bhk:formValue("bhk")||null,area:formValue("area")||null,
-        purpose:formValue("purpose")||"buy",updated_at:new Date().toISOString()
+        updated_at:new Date().toISOString()
       };
       const id=formValue("id");
       let query;
