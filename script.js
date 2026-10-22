@@ -113,14 +113,34 @@
     if (detailButton) showDetails(propertyById(detailButton.dataset.details));
     if (enquireButton) {
       const p = propertyById(enquireButton.dataset.enquire);
-      if (p) whatsapp(`Hello The NXT Realty, I am interested in ${p.title} in ${p.location}. Please share verified pricing, availability, floor plans and project details.`);
+      if (p) {
+        const requirement = document.querySelector('[name="requirement"]');
+        const location = document.querySelector('[name="location"]');
+        if (requirement) requirement.value = "Help me find a property";
+        if (location) {
+          const match = [...location.options].find(o => o.value === p.location || o.text === p.location);
+          if (match) location.value = match.value;
+        }
+        const nameField = document.querySelector('#enquiryForm [name="name"]');
+        if (nameField) nameField.dataset.interestedProperty = p.title;
+        document.getElementById("contact")?.scrollIntoView({behavior:"smooth"});
+        nameField?.focus({preventScroll:true});
+      }
     }
   });
   dialogContent?.addEventListener("click", event => {
     const button = event.target.closest("[data-enquire]");
     if (button) {
       const p = propertyById(button.dataset.enquire);
-      if (p) whatsapp(`Hello The NXT Realty, I am interested in ${p.title} in ${p.location}. Please share verified pricing, availability and project details.`);
+      if (p) {
+        const location = document.querySelector('#enquiryForm [name="location"]');
+        if (location) {
+          const match = [...location.options].find(o => o.value === p.location || o.text === p.location);
+          if (match) location.value = match.value;
+        }
+        dialog?.close();
+        document.getElementById("contact")?.scrollIntoView({behavior:"smooth"});
+      }
     }
   });
   $("dialogClose")?.addEventListener("click", () => dialog.close());
