@@ -177,6 +177,7 @@
       fillFilters();
       render();
       status.textContent = "Listings are temporarily unavailable. Please contact our team.";
+    }
   }
   loadProperties();
 })();
