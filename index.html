@@ -30,6 +30,16 @@
 </section>
 <section class="section section-wrap" id="properties">
   <div class="section-heading"><div><p class="eyebrow">A MORE PERSONAL PROPERTY SEARCH</p><h2>Explore your possibilities<span class="gold-dot">.</span></h2></div><p class="section-intro">Every search is different. Tell us your priorities and we’ll help you narrow down the options that make sense for you.</p></div>
+  <div class="live-listings" id="liveListings">
+    <div class="listings-toolbar">
+      <div><p class="eyebrow">AVAILABLE PROPERTY OPTIONS</p><h3>Featured properties</h3><p class="listings-intro">Browse currently published listings from The NXT Realty.</p></div>
+      <div class="listing-filters"><label>Search<input id="propertySearch" type="search" placeholder="Project, area or keyword" aria-label="Search properties"></label><label>Location<select id="locationFilter"><option value="">All locations</option></select></label><label>Property type<select id="typeFilter"><option value="">All types</option></select></label></div>
+    </div>
+    <p class="listing-status" id="listingStatus" role="status">Loading available properties…</p>
+    <div class="property-grid" id="propertyGrid" aria-live="polite"></div>
+    <p class="listing-empty" id="emptyState" hidden>No published properties yet. Please contact us and we’ll help you find suitable options.</p>
+    <p class="listing-empty" id="noResults" hidden>No properties match those filters. Try a different search.</p>
+  </div>
   <div class="feature-grid">
     <article class="feature-card feature-large"><img src="assets/project-residential.png" alt="Illustrative contemporary residential development" loading="lazy"><div class="feature-overlay"><span class="image-tag">PROPERTY DISCOVERY</span><h3>Find a home that fits your life.</h3><p>Explore configurations, locations and options around your needs.</p><a href="#contact" class="arrow-link">Tell us what you need <span>↗</span></a></div></article>
     <article class="feature-card feature-copy"><div class="number">01 / YOUR REQUIREMENTS</div><h3>Start with your priorities.</h3><p>Choose the kind of property, preferred area and the details you want to understand before deciding.</p><a href="#contact" class="arrow-link">Share your requirements <span>↗</span></a><div class="feature-rule"></div><div class="number">02 / YOUR SHORTLIST</div><h3>Compare with clarity.</h3><p>Ask us about project details, configurations, amenities and documents before moving ahead.</p><a href="#guide" class="arrow-link">See the process <span>↗</span></a></article>
@@ -48,6 +58,8 @@
 <footer class="site-footer"><div class="footer-top"><a class="brand footer-brand" href="#home"><span class="brand-mark">N<span>+</span></span><span class="brand-name">THE NXT REALTY<small>EXCEPTIONAL SPACES. ELEVATED LIVING.</small></span></a><p>Thoughtful property guidance for your next move.</p><a class="footer-wa" href="https://wa.me/918108556994" target="_blank" rel="noopener">Chat on WhatsApp ↗</a></div><div class="footer-bottom"><span>© <span id="year">2026</span> The NXT Realty</span><span>Property images are illustrative. Please verify all project information.</span><a href="privacy-policy.html">Privacy information</a></div></footer>
 <a class="floating-wa" href="https://wa.me/918108556994?text=Hello%20The%20NXT%20Realty%2C%20I%27d%20like%20help%20with%20a%20property%20enquiry." target="_blank" rel="noopener" aria-label="Chat with The NXT Realty on WhatsApp"><span class="wa-icon">◔</span><span>Chat with us</span></a>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="config.js"></script>
 <script src="properties.js"></script>
+<script src="app.js"></script>
 <script src="script.js"></script>
 </body></html>
