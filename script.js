@@ -172,6 +172,14 @@
     const form = event.currentTarget;
     if (!form.reportValidity()) return;
     const d = new FormData(form), get = key => String(d.get(key) || "").trim();
+    const phone = get("needPhone");
+    const phoneField = form.querySelector('[name="needPhone"]');
+    if (!/^[6-9][0-9]{9}$/.test(phone)) {
+      phoneField.setCustomValidity("Enter a valid 10-digit Indian mobile number starting with 6, 7, 8 or 9.");
+      phoneField.reportValidity();
+      phoneField.addEventListener("input", () => phoneField.setCustomValidity(""), { once: true });
+      return;
+    }
     const endpoint = String(config.googleSheetsWebAppUrl || "").trim();
     const message = $("requirementStatus") || form.querySelector(".tool-note");
     const button = form.querySelector('[type="submit"]');
@@ -183,7 +191,7 @@
     button.disabled = true; button.textContent = "Submitting…";
     message.textContent = "Submitting your requirement…";
     fetch(endpoint, {method:"POST",mode:"no-cors",headers:{"Content-Type":"text/plain;charset=utf-8"},body:JSON.stringify({
-      source:"Property Brief Form",name:get("needName"),phone:get("needPhone"),email:"",
+      source:"Property Brief Form",name:get("needName"),phone,email:"",
       requirement:get("needType"),location:get("needLocation"),propertyType:get("needBhk"),budget:get("needBudget"),page:window.location.href
     })}).then(() => {
       message.textContent = "Thank you! Your requirement has been submitted. Our team will follow up.";
