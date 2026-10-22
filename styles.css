@@ -84,3 +84,6 @@
 /* Header shortcut for the live property catalogue */
 .site-header nav .nav-listed{display:inline-flex;align-items:center;justify-content:center;padding:10px 13px;border:1px solid var(--gold);color:var(--navy);white-space:nowrap;transition:background .2s,color .2s}.site-header nav .nav-listed:hover{background:var(--gold);color:var(--navy)}
 @media(max-width:650px){.site-header nav .nav-listed{justify-content:flex-start;border:0;border-bottom:1px solid #eee;padding:13px 8px}}
+
+/* Discreet footer shortcut for site administrators */
+.site-footer .footer-bottom .admin-footer-link{font-size:11px;letter-spacing:.04em;text-transform:uppercase;color:#b9a06a;text-decoration:none;white-space:nowrap}.site-footer .footer-bottom .admin-footer-link:hover{color:#fff;text-decoration:underline}
