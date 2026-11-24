@@ -36,6 +36,13 @@
     return n >= 1e7 ? `₹${(n / 1e7).toFixed(2).replace(/\.00$/, '')} Cr` : n >= 1e5 ? `₹${(n / 1e5).toFixed(2).replace(/0$/, '').replace(/\.$/, '')} L` : `₹${n.toLocaleString('en-IN')}`;
   };
   const waLink = p => `https://wa.me/${wa}?text=${encodeURIComponent(`Hello The NXT Realty, I am interested in ${p.project_name || p.title || 'this project'} in ${p.locality || p.location || ''}. Please share details and arrange a site visit.`)}`;
+  const heroSummary = value => {
+    const description = String(value ?? '').trim().replace(/\\s+/g, ' ');
+    if (!description) return 'Discover this property with The NXT Realty.';
+    const firstSentence = description.match(/^.*?[.!?](?=\\s|$)/)?.[0] || description;
+    if (firstSentence.length <= 180) return firstSentence;
+    return `${firstSentence.slice(0, 177).replace(/\\s+\\S*$/, '')}…`;
+  };
   const resourceAction = (url, label) => url
     ? `<button class="btn btn-outline resource-access-btn" type="button" data-resource-url="${esc(url)}" data-resource-label="${esc(label)}">${esc(label)} ↗</button>`
     : '';
@@ -53,7 +60,7 @@
     if (meta) meta.content = `${p.project_name || p.title || 'Property'} in ${p.locality || p.location}. Explore configurations, amenities and request a site visit with The NXT Realty.`;
 
     root.innerHTML = `
-      <section class="project-hero"><div class="project-hero-copy"><p class="eyebrow">${esc(p.locality || p.location)} · ${esc(p.listing_type || 'Property')}</p><h1>${esc(p.project_name || p.title || 'Property')}</h1><p>${esc(p.description || 'Discover this property with The NXT Realty.')}</p><div class="project-hero-meta"><span>${esc(p.developer_name || '')}</span><span>${esc(p.possession_status || '')}</span><span>${esc(p.rera_id || '')}</span></div><a class="btn btn-gold" href="${waLink(p)}" target="_blank" rel="noopener">Enquire / book a site visit ↗</a></div><div class="project-hero-image">${images[0] ? `<img src="${esc(images[0])}" alt="${esc(p.project_name)}" loading="eager">` : '<div class="gallery-placeholder">Project images coming soon</div>'}</div></section>
+      <section class="project-hero"><div class="project-hero-copy"><p class="eyebrow">${esc(p.locality || p.location)} · ${esc(p.listing_type || 'Property')}</p><h1>${esc(p.project_name || p.title || 'Property')}</h1><p>${esc(heroSummary(p.description))}</p><div class="project-hero-meta"><span>${esc(p.developer_name || '')}</span><span>${esc(p.possession_status || '')}</span><span>${esc(p.rera_id || '')}</span></div><a class="btn btn-gold" href="${waLink(p)}" target="_blank" rel="noopener">Enquire / book a site visit ↗</a></div><div class="project-hero-image">${images[0] ? `<img src="${esc(images[0])}" alt="${esc(p.project_name)}" loading="eager">` : '<div class="gallery-placeholder">Project images coming soon</div>'}</div></section>
       ${images.length > 1 ? `<section class="project-gallery">${images.slice(1).map((u, i) => `<img src="${esc(u)}" alt="${esc(p.project_name)} image ${i + 2}" loading="lazy">`).join('')}</section>` : ''}
       <section class="project-content-grid"><div class="project-main"><h2>About the project</h2><p>${esc(p.description || 'Contact our team for complete project information.')}</p>
       ${highlights.length ? `<h2>Project highlights</h2><div class="project-highlight-grid">${highlights.map(x => `<div>${esc(x)}</div>`).join('')}</div>` : ''}
