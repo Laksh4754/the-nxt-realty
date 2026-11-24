@@ -37,11 +37,11 @@
   };
   const waLink = p => `https://wa.me/${wa}?text=${encodeURIComponent(`Hello The NXT Realty, I am interested in ${p.project_name || p.title || 'this project'} in ${p.locality || p.location || ''}. Please share details and arrange a site visit.`)}`;
   const heroSummary = value => {
-    const description = String(value ?? '').trim().replace(/\\s+/g, ' ');
+    const description = String(value ?? '').trim().replace(/\s+/g, ' ');
     if (!description) return 'Discover this property with The NXT Realty.';
-    const firstSentence = description.match(/^.*?[.!?](?=\\s|$)/)?.[0] || description;
+    const firstSentence = description.match(/^.*?[.!?](?=\s|$)/)?.[0] || description;
     if (firstSentence.length <= 180) return firstSentence;
-    return `${firstSentence.slice(0, 177).replace(/\\s+\\S*$/, '')}…`;
+    return `${firstSentence.slice(0, 177).replace(/\s+\S*$/, '')}…`;
   };
   const resourceAction = (url, label) => url
     ? `<button class="btn btn-outline resource-access-btn" type="button" data-resource-url="${esc(url)}" data-resource-label="${esc(label)}">${esc(label)} ↗</button>`
