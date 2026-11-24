@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
-  <url><loc>https://www.thenxtrealty.com/</loc><changefreq>weekly</changefreq><priority>1.0</priority></url>
-  <url><loc>https://www.thenxtrealty.com/property.html?id=b584622c-d0a7-4bba-bbbb-8811a13e9345</loc><changefreq>weekly</changefreq><priority>0.8</priority></url>
-  <url><loc>https://www.thenxtrealty.com/property.html?id=1bf8259c-82a2-4180-aedf-96a65a1500ea</loc><changefreq>weekly</changefreq><priority>0.8</priority></url>
+  <url><loc>https://the-nxt-realty.vercel.app/</loc><changefreq>weekly</changefreq><priority>1.0</priority></url>
+  <url><loc>https://the-nxt-realty.vercel.app/property.html?id=b584622c-d0a7-4bba-bbbb-8811a13e9345</loc><changefreq>weekly</changefreq><priority>0.8</priority></url>
+  <url><loc>https://the-nxt-realty.vercel.app/property.html?id=1bf8259c-82a2-4180-aedf-96a65a1500ea</loc><changefreq>weekly</changefreq><priority>0.8</priority></url>
 </urlset>

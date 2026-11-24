@@ -1,4 +1,4 @@
 User-agent: *
 Allow: /
 Disallow: /admin.html
-Sitemap: https://www.thenxtrealty.com/sitemap.xml
+Sitemap: https://the-nxt-realty.vercel.app/sitemap.xml
