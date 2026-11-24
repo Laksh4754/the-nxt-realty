@@ -46,6 +46,32 @@
     if (error) { say('#adminMessage', `Could not load listings: ${error.message}`); return; }
     $('#adminList').innerHTML = (data || []).map(p => `<article class="admin-row"><div><strong>${esc(p.project_name || p.title)}</strong><small>${esc(p.location)} · ${esc(p.locality || '')} · ${esc(p.status)} · ${formatPrice(p.price)}</small><small>${(p.configurations || []).map(c => esc(c.label)).join(' · ') || esc(p.property_type || 'Configuration not set')}</small></div><div><button class="secondary" data-edit="${esc(p.id)}">Edit</button><button class="secondary" data-delete="${esc(p.id)}">Delete</button></div></article>`).join('') || '<p>No listings yet. Add your first project.</p>';
     await loadLeads();
+    await loadAnalytics();
+  }
+  async function loadAnalytics() {
+    const host = $('#analyticsSummary');
+    if (!host) return;
+    host.innerHTML = '<p class="hint">Loading visitor insights…</p>';
+    const since = new Date(Date.now() - 30 * 86400000).toISOString();
+    const { data: events, error } = await db.from('site_events').select('event_type,page_path,property_id,utm_source,referrer_host,device_type,session_id,created_at').gte('created_at', since).order('created_at', {ascending:false}).limit(5000);
+    if (error) { host.innerHTML = `<p class="analytics-empty">Visitor insights are unavailable: ${esc(error.message)}</p>`; return; }
+    const rows = events || [];
+    const views = rows.filter(e => e.event_type === 'page_view');
+    const propertyViews = rows.filter(e => e.event_type === 'property_view');
+    const visitors = new Set(views.map(e => e.session_id)).size;
+    host.innerHTML = `<div class="analytics-stat"><strong>${visitors.toLocaleString('en-IN')}</strong><span>Unique browsing sessions</span></div><div class="analytics-stat"><strong>${views.length.toLocaleString('en-IN')}</strong><span>Page views</span></div><div class="analytics-stat"><strong>${propertyViews.length.toLocaleString('en-IN')}</strong><span>Property detail views</span></div>`;
+    const counts = (list, keyFn) => { const map = new Map(); list.forEach(e => { const k=keyFn(e) || 'Direct / unknown'; map.set(k,(map.get(k)||0)+1); }); return [...map.entries()].sort((a,b)=>b[1]-a[1]).slice(0,6); };
+    const topIds = counts(propertyViews, e => e.property_id).filter(x=>x[0] !== 'Direct / unknown');
+    let names = {};
+    if (topIds.length) {
+      const {data: props} = await db.from('properties').select('id,project_name,title').in('id',topIds.map(x=>x[0]));
+      (props || []).forEach(p => names[p.id] = p.project_name || p.title || 'Property');
+    }
+    $('#topProperties').innerHTML = topIds.length ? topIds.map(([id,n])=>`<p><span>${esc(names[id] || 'Property')}</span><strong>${n}</strong></p>`).join('') : '<p class="analytics-empty">No property views recorded yet.</p>';
+    const sources = counts(rows.filter(e=>e.event_type==='page_view'), e=>e.utm_source || e.referrer_host || 'Direct');
+    $('#topSources').innerHTML = sources.length ? sources.map(([name,n])=>`<p><span>${esc(name)}</span><strong>${n}</strong></p>`).join('') : '<p class="analytics-empty">No source data yet.</p>';
+    const devices = counts(views,e=>e.device_type);
+    $('#deviceBreakdown').innerHTML = devices.length ? devices.map(([name,n])=>`<p><span>${esc(name)}</span><strong>${n}</strong></p>`).join('') : '<p class="analytics-empty">No device data yet.</p>';
   }
   async function loadLeads() {
     const { data, error } = await db.from('leads').select('*').order('created_at', {ascending:false}).limit(100);
@@ -77,6 +103,7 @@
     if (del && confirm('Delete this project listing? This does not automatically delete its stored images.')) { const {error} = await db.from('properties').delete().eq('id',del); say('#adminMessage',error ? error.message : 'Project deleted.'); await loadList(); }
   });
   $('#refreshLeads').addEventListener('click', loadLeads);
+  $('#refreshAnalytics')?.addEventListener('click', loadAnalytics);
   $('#leadList').addEventListener('change', async e => { const id=e.target.dataset.leadStatus; if (!id) return; const {error}=await db.from('leads').update({status:e.target.value}).eq('id',id); say('#adminMessage',error ? error.message : 'Enquiry status updated.'); });
 
   form.addEventListener('submit', async e => {
