@@ -55,9 +55,14 @@
     const plans = Array.isArray(p.floor_plans) ? p.floor_plans : [];
     const map = safeUrl(p.map_url) || (p.latitude !== null && p.latitude !== undefined && p.longitude !== null && p.longitude !== undefined && Number.isFinite(Number(p.latitude)) && Number.isFinite(Number(p.longitude)) ? `https://www.google.com/maps?q=${encodeURIComponent(p.latitude)},${encodeURIComponent(p.longitude)}` : null);
     const brochure = safeUrl(p.brochure_url), video = safeUrl(p.video_url), tour = safeUrl(p.virtual_tour_url);
-    document.title = `${p.project_name || p.title || 'Property'} | The NXT Realty`;
+    const propertyName = p.project_name || p.title || 'Property';
+    const propertyLocation = p.locality || p.location || 'Mumbai Metropolitan Region';
+    document.title = `${propertyName} in ${propertyLocation} | The NXT Realty`;
     const meta = document.querySelector('meta[name="description"]');
-    if (meta) meta.content = `${p.project_name || p.title || 'Property'} in ${p.locality || p.location}. Explore configurations, amenities and request a site visit with The NXT Realty.`;
+    if (meta) {
+      const summary = heroSummary(p.description);
+      meta.content = `${propertyName} in ${propertyLocation}. ${summary} Contact The NXT Realty for current availability and a site visit.`.slice(0, 320);
+    }
 
     root.innerHTML = `
       <section class="project-hero"><div class="project-hero-copy"><p class="eyebrow">${esc(p.locality || p.location)} · ${esc(p.listing_type || 'Property')}</p><h1>${esc(p.project_name || p.title || 'Property')}</h1><p>${esc(heroSummary(p.description))}</p><div class="project-hero-meta"><span>${esc(p.developer_name || '')}</span><span>${esc(p.possession_status || '')}</span><span>${esc(p.rera_id || '')}</span></div><a class="btn btn-gold" href="${waLink(p)}" target="_blank" rel="noopener">Enquire / book a site visit ↗</a></div><div class="project-hero-image">${images[0] ? `<img src="${esc(images[0])}" alt="${esc(p.project_name)}" loading="eager">` : '<div class="gallery-placeholder">Project images coming soon</div>'}</div></section>
