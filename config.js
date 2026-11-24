@@ -1,16 +1,13 @@
 /*
-  SITE SETTINGS — edit this file before launch.
-  WhatsApp number: country code + number, digits only (no +, spaces or dashes).
-  Example format for India: 91XXXXXXXXXX
-  Leave blank until you have confirmed the business number.
+  SUPABASE CONFIGURATION
+  1. Create a Supabase project.
+  2. Copy Project URL and anon/public key from Project Settings > API.
+  3. Paste them below.
+  Never put a service_role key in browser code.
 */
 window.NXT_CONFIG = {
-  supabaseUrl: "https://nqusoryeujusjmdolqav.supabase.co",
-  supabaseAnonKey: "sb_publishable_jK_V3-J01qe5aM_dPVlGvA_azO-Qqbf",
-  whatsappNumber: "918108556994",
-  googleSheetsWebAppUrl: "https://script.google.com/macros/s/AKfycbyL-vTVZKJiceue79SvbGhHLVkYZtZVen_AgjlvQZX3NEDlfs6E7mlkQU7QbxQIjsE/exec",
-  contactEmail: "",
-  businessPhone: "",
-  businessName: "The NXT Realty",
-  tagline: "Exceptional Spaces. Elevated Living."
+  SUPABASE_URL: "https://gjnvfrdqtagunhfkcoiu.supabase.co",
+SUPABASE_ANON_KEY: "sb_publishable_BksMhhTTb0rWpMEdmnQ52w_xMJ6MwtT",
+  WHATSAPP_NUMBER: "917208015614",
+  PROPERTY_IMAGE_BUCKET: "property-images"
 };

@@ -1,164 +1,117 @@
 (() => {
-  "use strict";
-  const $ = id => document.getElementById(id);
-  const config = window.NXT_CONFIG || {};
-  const ADMIN_ID = "5e2cf52c-cf4c-4a5b-b17b-310343f98611";
-  const BUCKET = "property-photos";
-  const supabaseLib = window.supabase;
-  let client = null, currentUser = null, records = [];
-  const form = $("propertyForm");
-  const status = (id, message) => { const el=$(id); if(el) el.textContent=message; };
-  const escapeHTML = value => String(value ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
-  function show(el, yes=true){el?.classList.toggle("admin-hidden",!yes);}
-  function formValue(name){return String(new FormData(form).get(name)||"").trim();}
-  function setField(name,value){const el=form.elements.namedItem(name);if(!el)return;if(el.type==="checkbox")el.checked=Boolean(value);else el.value=value??"";}
-  function resetEditor(){
-    form.reset();setField("id","");setField("status","draft");setField("property_type","Residential");
-    $("imagePreview").removeAttribute("src");show($("imagePreview"),false);show($("deleteProperty"),false);
-    $("editorTitle").textContent="Add a property";show($("editorPanel"));status("saveStatus","New listings start as Draft. Set status to Active when you are ready to publish.");
+  const cfg = window.NXT_CONFIG || {};
+  const ready = window.supabase && cfg.SUPABASE_URL && cfg.SUPABASE_ANON_KEY;
+  const db = ready ? window.supabase.createClient(cfg.SUPABASE_URL, cfg.SUPABASE_ANON_KEY) : null;
+  const $ = s => document.querySelector(s);
+  const loginPanel = $('#loginPanel'), dashboard = $('#dashboard'), form = $('#propertyForm');
+  let editing = null, authCheck = false;
+  const say = (sel, msg) => { const el = $(sel); if (el) el.textContent = msg || ''; };
+  const esc = v => String(v ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  const formatPrice = v => v === null || v === undefined || v === '' ? 'Price on request' : `₹${Number(v).toLocaleString('en-IN')}`;
+  const bucket = cfg.PROPERTY_IMAGE_BUCKET || 'property-images';
+
+  function configRow(c = {}) {
+    const row = document.createElement('div'); row.className = 'configuration-row';
+    row.innerHTML = `<label>Configuration<input data-k="label" value="${esc(c.label || '')}" placeholder="e.g. 2 BHK" required></label><label>Carpet area range<input data-k="area" value="${esc(c.area || '')}" placeholder="e.g. 609–733 sq.ft."></label><label>Starting price (INR)<input data-k="price" type="number" min="0" step="1" value="${esc(c.price ?? '')}" placeholder="e.g. 7768000"></label><label>Bedrooms<input data-k="bedrooms" type="number" min="0" step="1" value="${esc(c.bedrooms ?? '')}"></label><button type="button" class="secondary remove-config" aria-label="Remove configuration">Remove</button>`;
+    row.querySelector('.remove-config').addEventListener('click', () => row.remove());
+    $('#configurationRows').append(row);
   }
-  function editRecord(p){
-    resetEditor();
-    ["id","title","builder","location","property_type","price","bhk","area","status","featured","details","description","image_url"].forEach(k=>setField(k,p[k]));
-    $("editorTitle").textContent="Edit property";show($("deleteProperty"),true);
-    if(p.image_url){$("imagePreview").src=p.image_url;show($("imagePreview"));}
-    $("editorPanel").scrollIntoView({behavior:"smooth",block:"start"});
+  function readConfigurations() {
+    return [...$('#configurationRows').querySelectorAll('.configuration-row')].map(row => {
+      const v = key => row.querySelector(`[data-k="${key}"]`).value.trim();
+      return { label:v('label'), area:v('area') || null, price:v('price') ? Number(v('price')) : null, bedrooms:v('bedrooms') ? Number(v('bedrooms')) : null };
+    }).filter(c => c.label);
   }
-  function renderList(){
-    const list=$("adminPropertyList");
-    if(!records.length){list.innerHTML='<p class="admin-muted">No property records found in the database yet. Use “New property” to add the first one.</p>';return;}
-    list.innerHTML=records.map(p=>'<article class="admin-item"><div><h3>'+escapeHTML(p.title||"Untitled property")+'</h3><p>'+escapeHTML(p.location||"Location not set")+' · '+escapeHTML(p.price||"Price on request")+' · '+escapeHTML(p.status||"draft")+(p.featured?" · Featured":"")+'</p></div><div class="admin-item-actions"><button type="button" data-edit="'+escapeHTML(p.id)+'">Edit</button><button type="button" data-toggle="'+escapeHTML(p.id)+'" data-status="'+(p.status==="active"?"draft":"active")+'">'+(p.status==="active"?"Unpublish":"Publish")+'</button></div></article>').join("");
+  function setConfigurations(items, legacy = {}) { $('#configurationRows').innerHTML = ''; const rows = Array.isArray(items) && items.length ? items : (legacy.property_type ? [{label:legacy.property_type, area:legacy.carpet_area ? `${legacy.carpet_area} ${legacy.area_unit || 'sq.ft.'}` : '', price:legacy.price, bedrooms:legacy.bedrooms}] : [{}]); rows.forEach(configRow); }
+
+  async function requireAdmin() {
+    if (!db) { say('#loginMessage', 'Supabase configuration is missing. Check config.js.'); return false; }
+    const { data:{session}, error } = await db.auth.getSession();
+    if (error || !session) { loginPanel.classList.remove('hidden'); dashboard.classList.add('hidden'); return false; }
+    return showDashboard(session.user);
   }
-  async function loadRecords(){
-    status("managerStatus","Loading property records…");
-    const {data,error}=await client.from("properties").select("*").order("created_at",{ascending:false});
-    if(error){status("managerStatus","Could not load properties: "+error.message+". Check that your admin account has database access and the properties table policies permit admin reads.");return;}
-    records=data||[];
-    const hasHaware=records.some(p=>String(p.title||"").toLowerCase().includes("haware forever vashi"));
-    let seedButton=$("seedHaware");
-    if(!hasHaware){
-      if(!seedButton){
-        seedButton=document.createElement("button");seedButton.id="seedHaware";seedButton.type="button";seedButton.className="admin-secondary";
-        seedButton.textContent="Add Haware Forever Vashi to admin";
-        $("newProperty").insertAdjacentElement("afterend",seedButton);
-        seedButton.addEventListener("click",seedHaware);
+  async function showDashboard(user) {
+    if (authCheck) return false; authCheck = true;
+    try {
+      const { data:isAdmin, error } = await db.rpc('is_nxt_admin');
+      if (error || isAdmin !== true) {
+        await db.auth.signOut(); loginPanel.classList.remove('hidden'); dashboard.classList.add('hidden');
+        say('#loginMessage', 'This account is not authorised for the NXT Realty admin workspace.'); return false;
       }
-      show(seedButton,true);
-    }else show(seedButton,false);
-    renderList();status("managerStatus",records.length+" database "+(records.length===1?"property":"properties")+". "+(hasHaware?"Haware Forever Vashi is editable here. ":"Use the Haware import button to add the showcase project to the database. ")+"Active listings are eligible to appear on the public site.");
+      loginPanel.classList.add('hidden'); dashboard.classList.remove('hidden'); say('#userEmail', user.email || 'Signed in'); await loadList(); return true;
+    } finally { authCheck = false; }
   }
-  async function seedHaware(){
-    const existing=records.find(p=>String(p.title||"").toLowerCase().includes("haware forever vashi"));
-    if(existing){editRecord(existing);return;}
-    const payload={
-      title:"Haware Forever Vashi",
-      location:"Sector 19E, Vashi, Navi Mumbai",
-      property_type:"Residential",
-      price:"Price on request",
-      details:"Smart 2 & 3 bed homes with smart home automation and thoughtfully planned layouts.",
-      description:"Haware Forever Vashi is a residential project at Sector 19E, Vashi, Navi Mumbai. The supplied brochure describes smart 2 and 3 bed homes, a T-shaped tower layout designed for natural light and ventilation, open views, and smart home automation. Listed carpet-area options in the supplied floor-plan material are 696, 772, 1,023 and 1,039 sq ft, with a combined 2+2 BHK Jodi option of 1,544 sq ft. Brochure-listed amenities include a swimming pool with deck, rooftop garden, gymnasium, yoga and meditation zone, senior citizens’ corner, kids’ play area, and multipurpose hall with open-air lawn. Site address: Intelligentia Centroid, Phase 2, Sector 19E, Vashi, Navi Mumbai - 400703. MahaRERA registration number shown in the brochure: PR1330002501547. Pricing, inventory and possession details are not confirmed; verify with the developer before publishing.",
-      image_url:"https://laksh4754.github.io/the-nxt-realty/assets/project-residential.png",bhk:"2 & 3",area:"696–1,039 sq ft carpet; 1,544 sq ft Jodi option",
-      featured:true,status:"active",created_at:new Date().toISOString(),updated_at:new Date().toISOString()
-    };
-    status("managerStatus","Adding Haware Forever Vashi to the database…");
-    const {error}=await client.from("properties").insert(payload);
-    if(error){status("managerStatus","Could not add Haware: "+error.message);return;}
-    status("managerStatus","Haware Forever Vashi is now a database listing. You can edit, unpublish or delete it here.");
-    await loadRecords();
+  async function loadList() {
+    const { data, error } = await db.from('properties').select('*').order('created_at', {ascending:false});
+    if (error) { say('#adminMessage', `Could not load listings: ${error.message}`); return; }
+    $('#adminList').innerHTML = (data || []).map(p => `<article class="admin-row"><div><strong>${esc(p.project_name || p.title)}</strong><small>${esc(p.location)} · ${esc(p.locality || '')} · ${esc(p.status)} · ${formatPrice(p.price)}</small><small>${(p.configurations || []).map(c => esc(c.label)).join(' · ') || esc(p.property_type || 'Configuration not set')}</small></div><div><button class="secondary" data-edit="${esc(p.id)}">Edit</button><button class="secondary" data-delete="${esc(p.id)}">Delete</button></div></article>`).join('') || '<p>No listings yet. Add your first project.</p>';
+    await loadLeads();
   }
-  async function uploadImage(file){
-    if(!file)return null;
-    if(!/^image\/(jpeg|png|webp)$/.test(file.type))throw new Error("Please choose a JPG, PNG or WebP image.");
-    if(file.size>8*1024*1024)throw new Error("Image must be 8 MB or smaller.");
-    const ext=({ "image/jpeg":"jpg","image/png":"png","image/webp":"webp" })[file.type];
-    const safeName=file.name.toLowerCase().replace(/[^a-z0-9._-]+/g,"-").slice(-70);
-    const path=Date.now()+"-"+crypto.randomUUID()+"-"+(safeName||("property."+ext));
-    const {data,error}=await client.storage.from(BUCKET).upload(path,file,{contentType:file.type,upsert:false});
-    if(error)throw new Error("Image upload failed: "+error.message+" If storage policies block uploads, add an admin-only INSERT policy for the public property-photos bucket.");
-    const {data:publicData}=client.storage.from(BUCKET).getPublicUrl(data.path);
-    return publicData.publicUrl;
+  async function loadLeads() {
+    const { data, error } = await db.from('leads').select('*').order('created_at', {ascending:false}).limit(100);
+    if (error) { say('#leadList', `Could not load enquiries: ${error.message}`); return; }
+    $('#leadList').innerHTML = (data || []).map(l => `<article class="admin-row lead-row"><div><strong>${esc(l.name)} · ${esc(l.phone)}</strong><small>${esc(l.requirement || 'Enquiry')} · ${esc(l.preferred_location || '')} · ${l.created_at ? new Date(l.created_at).toLocaleString() : ''}</small><small>${esc(l.message || '')}</small></div><div><select data-lead-status="${esc(l.id)}" aria-label="Lead status"><option value="new" ${l.status==='new'?'selected':''}>New</option><option value="contacted" ${l.status==='contacted'?'selected':''}>Contacted</option><option value="site_visit" ${l.status==='site_visit'?'selected':''}>Site visit</option><option value="qualified" ${l.status==='qualified'?'selected':''}>Qualified</option><option value="closed" ${l.status==='closed'?'selected':''}>Closed</option></select><a class="small-link" href="https://wa.me/${String(l.phone).replace(/\D/g,'')}" target="_blank" rel="noopener">WhatsApp ↗</a></div></article>`).join('') || '<p>No website enquiries yet.</p>';
   }
-  async function saveProperty(forceDraft=false){
-    const title=formValue("title"),location=formValue("location");
-    if(!title||!location){status("saveStatus","Project name and location are required.");return;}
-    const saveBtn=form.querySelector('[type="submit"]');saveBtn.disabled=true;
-    try{
-      status("saveStatus","Saving property…");
-      const file=$("imageFile").files?.[0];
-      if(file){const url=await uploadImage(file);setField("image_url",url);}
-      const payload={
-        title,location,property_type:formValue("property_type")||"Residential",
-        price:formValue("price")||"Price on request",details:formValue("details"),
-        description:formValue("description"),image_url:formValue("image_url")||null,
-        status:forceDraft?"draft":formValue("status"),featured:form.elements.namedItem("featured").checked,
-        bhk:formValue("bhk")||null,area:formValue("area")||null,
-        updated_at:new Date().toISOString()
-      };
-      const id=formValue("id");
-      let query;
-      if(id){payload.id=id;query=client.from("properties").update(payload).eq("id",id);}
-      else query=client.from("properties").insert(payload);
-      const {error}=await query.select().single();
-      if(error)throw error;
-      status("saveStatus",payload.status==="active"?"Saved and published. The public catalogue should show this listing after refresh.":"Saved as a draft. It is hidden from the public catalogue.");
-      await loadRecords();resetEditor();
-    }catch(e){console.error(e);status("saveStatus","Save failed: "+(e.message||String(e))+". Your database may need columns for builder/purpose only if you added them to the schema; this form uses the core properties fields plus bhk and area.");}
-    finally{saveBtn.disabled=false;}
+  function setField(name, value) { if (form.elements[name]) form.elements[name].value = value ?? ''; }
+  function openEditor(p) {
+    form.reset(); editing = p || null; form.classList.remove('hidden'); $('#editorTitle').textContent = p ? 'Edit project' : 'Add a project';
+    setField('id', p?.id); ['project_name','title','developer_name','project_type','location','locality','listing_type','possession_status','rera_id','price','description','payment_plan','image_url','brochure_url','video_url','virtual_tour_url','map_url','latitude','longitude','status'].forEach(k => setField(k, p?.[k]));
+    setField('highlights_text', (p?.project_highlights || []).join('\n')); setField('amenities_text', (p?.amenities || []).join(', ')); setField('floor_plans_text', (p?.floor_plans || []).map(x => typeof x === 'string' ? x : x.url).filter(Boolean).join('\n'));
+    form.elements.featured.checked = !!p?.featured; setConfigurations(p?.configurations || [], p || {}); form.scrollIntoView({behavior:'smooth', block:'start'});
   }
-  async function setListingStatus(id,nextStatus){
-    const {error}=await client.from("properties").update({status:nextStatus,updated_at:new Date().toISOString()}).eq("id",id);
-    if(error){status("managerStatus","Could not update listing: "+error.message);return;}
-    status("managerStatus",nextStatus==="active"?"Listing published.":"Listing unpublished.");await loadRecords();
-  }
-  async function deleteCurrent(){
-    const id=formValue("id");if(!id)return;
-    if(!confirm("Permanently delete this property record? This cannot be undone."))return;
-    const {error}=await client.from("properties").delete().eq("id",id);
-    if(error){status("saveStatus","Delete failed: "+error.message);return;}
-    status("managerStatus","Property deleted.");show($("editorPanel"),false);await loadRecords();
-  }
-  async function enterManager(session){
-    currentUser=session?.user||null;
-    if(!currentUser){show($("loginPanel"));show($("managerPanel"),false);show($("signOut"),false);return;}
-    if(currentUser.id!==ADMIN_ID){
-      await client.auth.signOut();
-      show($("loginPanel"));show($("managerPanel"),false);
-      status("loginStatus","This account is not authorised to manage The NXT Realty listings. Sign in with the authorised admin account.");return;
-    }
-    show($("loginPanel"),false);show($("managerPanel"));show($("signOut"));
-    await loadRecords();
-  }
-  async function start(){
-    if(!supabaseLib?.createClient||!config.supabaseUrl||!config.supabaseAnonKey){
-      status("loginStatus","Supabase configuration is missing. Please check config.js.");return;
-    }
-    client=supabaseLib.createClient(config.supabaseUrl,config.supabaseAnonKey);
-    const {data,error}=await client.auth.getSession();
-    if(error)status("loginStatus","Could not check sign-in session: "+error.message);
-    await enterManager(data?.session||null);
-    client.auth.onAuthStateChange((_event,session)=>{setTimeout(()=>enterManager(session),0);});
-  }
-  $("loginForm").addEventListener("submit",async e=>{
-    e.preventDefault();const d=new FormData(e.currentTarget);
-    status("loginStatus","Signing in…");
-    const {data,error}=await client.auth.signInWithPassword({email:String(d.get("email")||"").trim(),password:String(d.get("password")||"")});
-    if(error){status("loginStatus","Sign-in failed: "+error.message);return;}
-    await enterManager(data.session);
+  function validHttpUrl(value, label) { if (!value) return null; let u; try { u = new URL(value); } catch { throw new Error(`${label} must be a valid URL.`); } if (!['http:','https:'].includes(u.protocol)) throw new Error(`${label} must start with http:// or https://.`); return u.href; }
+
+  $('#loginForm').addEventListener('submit', async e => {
+    e.preventDefault(); if (!db) { say('#loginMessage','Supabase configuration is missing.'); return; }
+    const f = new FormData(e.currentTarget); say('#loginMessage','Signing in…');
+    const { data, error } = await db.auth.signInWithPassword({email:f.get('email'), password:f.get('password')});
+    if (error) { say('#loginMessage', error.message); return; } await showDashboard(data.user);
   });
-  $("signOut").addEventListener("click",async()=>{await client.auth.signOut();});
-  $("newProperty").addEventListener("click",resetEditor);
-  $("cancelEdit").addEventListener("click",()=>show($("editorPanel"),false));
-  $("adminPropertyList").addEventListener("click",async e=>{
-    const edit=e.target.closest("[data-edit]"),toggle=e.target.closest("[data-toggle]");
-    if(edit){const p=records.find(r=>String(r.id)===edit.dataset.edit);if(p)editRecord(p);}
-    if(toggle)await setListingStatus(toggle.dataset.toggle,toggle.dataset.status);
+  $('#logoutBtn').addEventListener('click', async () => { await db.auth.signOut(); location.reload(); });
+  $('#newPropertyBtn').addEventListener('click', () => openEditor());
+  $('#addConfigurationBtn').addEventListener('click', () => configRow());
+  $('#cancelEdit').addEventListener('click', () => { form.classList.add('hidden'); editing = null; });
+  $('#adminList').addEventListener('click', async e => {
+    const edit = e.target.dataset.edit, del = e.target.dataset.delete;
+    if (edit) { const {data,error} = await db.from('properties').select('*').eq('id',edit).single(); if (error) say('#adminMessage',error.message); else openEditor(data); }
+    if (del && confirm('Delete this project listing? This does not automatically delete its stored images.')) { const {error} = await db.from('properties').delete().eq('id',del); say('#adminMessage',error ? error.message : 'Project deleted.'); await loadList(); }
   });
-  form.addEventListener("submit",e=>{e.preventDefault();saveProperty(false);});
-  $("saveDraft").addEventListener("click",()=>saveProperty(true));
-  $("deleteProperty").addEventListener("click",deleteCurrent);
-  $("imageFile").addEventListener("change",()=>{
-    const file=$("imageFile").files?.[0];if(!file){show($("imagePreview"),false);return;}
-    $("imagePreview").src=URL.createObjectURL(file);show($("imagePreview"));
+  $('#refreshLeads').addEventListener('click', loadLeads);
+  $('#leadList').addEventListener('change', async e => { const id=e.target.dataset.leadStatus; if (!id) return; const {error}=await db.from('leads').update({status:e.target.value}).eq('id',id); say('#adminMessage',error ? error.message : 'Enquiry status updated.'); });
+
+  form.addEventListener('submit', async e => {
+    e.preventDefault(); const button=$('#savePropertyBtn'); button.disabled=true; button.textContent='Saving…'; say('#saveMessage','');
+    const uploadedPaths=[];
+    try {
+      const f=new FormData(form), id=f.get('id'); let imageUrl=f.get('image_url') || null;
+      const files=Array.from(form.elements.images.files || []); if (files.length>10) throw new Error('Upload a maximum of 10 images.');
+      const oldGallery=Array.isArray(editing?.gallery_urls) ? editing.gallery_urls : [];
+      for (const file of files) {
+        if (!['image/jpeg','image/png','image/webp'].includes(file.type)) throw new Error(`${file.name} is not a supported JPG, PNG or WebP image.`);
+        if (file.size>8*1024*1024) throw new Error(`${file.name} is larger than 8 MB.`);
+        const ext=(file.name.split('.').pop() || 'jpg').toLowerCase(), path=`${crypto.randomUUID()}.${ext}`;
+        const {error:upErr}=await db.storage.from(bucket).upload(path,file,{upsert:false,contentType:file.type}); if (upErr) throw upErr;
+        uploadedPaths.push(path); const {data}=db.storage.from(bucket).getPublicUrl(path); if (data?.publicUrl) uploadedPaths[uploadedPaths.length-1]={path,url:data.publicUrl};
+      }
+      const newUrls=uploadedPaths.map(x => typeof x === 'string' ? null : x.url).filter(Boolean);
+      const galleryUrls=newUrls.length ? [...oldGallery,...newUrls] : oldGallery;
+      if (!imageUrl) imageUrl=galleryUrls[0] || null;
+      const configurations=readConfigurations();
+      if (!configurations.length) throw new Error('Add at least one property configuration.');
+      const primary=configurations[0];
+      const amenities=f.get('amenities_text').split(',').map(x=>x.trim()).filter(Boolean);
+      const highlights=f.get('highlights_text').split('\n').map(x=>x.trim()).filter(Boolean);
+      const floorPlans=f.get('floor_plans_text').split('\n').map(x=>x.trim()).filter(Boolean).map(url=>({url:validHttpUrl(url,'Floor plan URL')}));
+      const payload={project_name:f.get('project_name').trim(),title:f.get('title').trim()||f.get('project_name').trim(),developer_name:f.get('developer_name')||null,project_type:f.get('project_type')||'residential',location:f.get('location'),locality:f.get('locality')||null,listing_type:f.get('listing_type'),property_type:primary.label,price:f.get('price')?Number(f.get('price')):(primary.price??null),carpet_area:null,area_unit:'sq.ft.',bedrooms:primary.bedrooms??null,bathrooms:null,image_url:validHttpUrl(imageUrl,'Main image URL'),gallery_urls:galleryUrls,description:f.get('description')||null,status:f.get('status'),featured:form.elements.featured.checked,amenities,project_highlights:highlights,payment_plan:f.get('payment_plan')||null,video_url:validHttpUrl(f.get('video_url'),'Video URL'),virtual_tour_url:validHttpUrl(f.get('virtual_tour_url'),'Virtual tour URL'),floor_plans:floorPlans,configurations,possession_status:f.get('possession_status')||null,rera_id:f.get('rera_id')||null,map_url:validHttpUrl(f.get('map_url'),'Google Maps URL'),brochure_url:validHttpUrl(f.get('brochure_url'),'Brochure URL'),latitude:f.get('latitude')?Number(f.get('latitude')):null,longitude:f.get('longitude')?Number(f.get('longitude')):null};
+      const result=id ? await db.from('properties').update(payload).eq('id',id) : await db.from('properties').insert(payload);
+      if (result.error) throw result.error;
+      say('#saveMessage','Project saved successfully.'); form.classList.add('hidden'); editing=null; await loadList(); say('#adminMessage','Project saved.');
+    } catch(err) {
+      // If the DB save failed after uploads, clean up those new objects to avoid orphaned files.
+      const paths=uploadedPaths.map(x=>typeof x==='string'?x:x.path).filter(Boolean); if (paths.length) await db.storage.from(bucket).remove(paths);
+      say('#saveMessage',err.message || 'Could not save project.');
+    } finally { button.disabled=false; button.textContent='Save project'; }
   });
-  start();
+  async function boot() { if (!db) { loginPanel.classList.remove('hidden'); say('#loginMessage','Configure Supabase in config.js to activate the admin dashboard.'); return; } await requireAdmin(); db.auth.onAuthStateChange((_event,session) => { if (session) showDashboard(session.user); else { loginPanel.classList.remove('hidden'); dashboard.classList.add('hidden'); } }); }
+  boot();
 })();
