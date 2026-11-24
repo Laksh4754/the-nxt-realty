@@ -58,7 +58,7 @@
     const rows = events || [];
     const views = rows.filter(e => e.event_type === 'page_view');
     const propertyViews = rows.filter(e => e.event_type === 'property_view');
-    const visitors = new Set(views.map(e => e.session_id)).size;
+    const visitors = new Set(rows.filter(e => e.event_type === 'page_view' || e.event_type === 'property_view').map(e => e.session_id)).size;
     host.innerHTML = `<div class="analytics-stat"><strong>${visitors.toLocaleString('en-IN')}</strong><span>Unique browsing sessions</span></div><div class="analytics-stat"><strong>${views.length.toLocaleString('en-IN')}</strong><span>Page views</span></div><div class="analytics-stat"><strong>${propertyViews.length.toLocaleString('en-IN')}</strong><span>Property detail views</span></div>`;
     const counts = (list, keyFn) => { const map = new Map(); list.forEach(e => { const k=keyFn(e) || 'Direct / unknown'; map.set(k,(map.get(k)||0)+1); }); return [...map.entries()].sort((a,b)=>b[1]-a[1]).slice(0,6); };
     const topIds = counts(propertyViews, e => e.property_id).filter(x=>x[0] !== 'Direct / unknown');
