@@ -1,0 +1,16 @@
+{
+  "name": "the-nxt-realty",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "check:assets": "node scripts/check-assets.mjs",
+    "check:supabase": "node scripts/supabase-smoke.mjs",
+    "check": "npm run check:assets && npm run check:supabase",
+    "test:e2e": "playwright test",
+    "test": "npm run check && npm run test:e2e"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.56.1",
+    "@supabase/supabase-js": "^2.57.4"
+  }
+}
