@@ -9,7 +9,8 @@ if (!fs.existsSync(indexPath)) {
   process.exit(1);
 }
 
-const html = fs.readFileSync(indexPath, 'utf8');
+// Ignore markup inside HTML comments so it cannot satisfy required resources.
+const html = fs.readFileSync(indexPath, 'utf8').replace(/<!--[\s\S]*?-->/g, '');
 const references = [];
 for (const match of html.matchAll(/<(?:script|link)\b[^>]*>/gi)) {
   const tag = match[0];
@@ -29,9 +30,14 @@ const required = [
 const missing = required.filter(item => !references.some(item.test)).map(item => item.name);
 const missingFiles = [];
 for (const item of references) {
-  if (/^(?:[a-z]+:)?\/\//i.test(item.value) || item.value.startsWith('data:') || item.value.startsWith('#')) continue;
-  const localPath = decodeURIComponent(item.value.split(/[?#]/, 1)[0]).replace(/^\.\//, '');
-  if (!localPath || !fs.existsSync(path.resolve(root, localPath))) missingFiles.push(localPath || item.value);
+  if (/^[a-z][a-z\d+.-]*:/i.test(item.value) || item.value.startsWith('//') || item.value.startsWith('#')) continue;
+  let localPath;
+  try { localPath = decodeURIComponent(new URL(item.value, 'http://localhost/').pathname); }
+  catch { missingFiles.push(item.value); continue; }
+  const absolutePath = path.resolve(root, `.${localPath.startsWith('/') ? localPath : `/${localPath}`}`);
+  if (!absolutePath.startsWith(root + path.sep) || !fs.existsSync(absolutePath) || !fs.statSync(absolutePath).isFile()) {
+    missingFiles.push(localPath || item.value);
+  }
 }
 
 if (missing.length || missingFiles.length) {
