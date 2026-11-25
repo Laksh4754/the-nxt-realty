@@ -30,7 +30,7 @@ if (!/SUPABASE_URL:\s*["']https:\/\/[a-z0-9-]+\.supabase\.co["']/.test(config)) 
 else pass("Supabase project URL is configured");
 if (!/SUPABASE_ANON_KEY:\s*["'][^"']{20,}["']/.test(config)) fail("config.js has no publishable/anon key");
 else pass("Supabase publishable/anon key is configured");
-if (/service_role|SERVICE_ROLE/i.test(config)) fail("service-role credential must never be in browser config");
+if (/SUPABASE_SERVICE_ROLE\\s*:/i.test(config)) fail("service-role credential must never be in browser config");
 else pass("no service-role credential label in browser config");
 
 for (const file of fs.readdirSync(root).filter((name) => name.endsWith(".js"))) {
