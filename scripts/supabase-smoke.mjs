@@ -44,9 +44,16 @@ try {
     .select('id')
     .eq('status', 'published')
     .limit(1);
-  if (error || !Array.isArray(data)) throw new Error();
-  console.log('Supabase smoke check passed: configuration is valid and the published listings query succeeded.');
+  if (error) {
+    console.error(`Supabase smoke check failed: the published listings query was rejected (code ${/^[A-Z0-9]+$/.test(error.code || '') ? error.code : 'unavailable'}). No credentials or response details were printed.`);
+    process.exit(1);
+  }
+  if (!Array.isArray(data) || data.length === 0) {
+    console.error('Supabase smoke check failed: the published listings query returned no published listings. No credentials or response details were printed.');
+    process.exit(1);
+  }
+  console.log('Supabase smoke check passed: configuration is valid and at least one published listing is readable.');
 } catch {
-  console.error('Supabase smoke check failed: the published listings query did not succeed. No credentials or response details were printed.');
+  console.error('Supabase smoke check failed: the published listings query could not be completed. No credentials or response details were printed.');
   process.exit(1);
 }

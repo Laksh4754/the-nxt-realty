@@ -131,7 +131,7 @@
           <div class="form-heading"><strong>Start a conversation</strong><span>All fields marked * are required.</span></div>
           <div class="form-grid">
             <label>Your name *<input name="name" required placeholder="Enter your name" autocomplete="name"></label>
-            <label>Phone number *<input name="phone" required inputmode="tel" pattern="[0-9+() -]{8,18}" placeholder="+91"></label>
+            <label>Phone number *<input name="phone" required inputmode="tel" pattern="\+?[0-9][0-9 ]{6,16}[0-9]" placeholder="+91"></label>
             <label>I'm interested in<select name="requirement"><option>Buying a property</option><option>Resale property</option><option>New project</option><option>Investment opportunity</option><option>Selling my property</option><option>Arranging a site visit</option></select></label>
             <label>Preferred location<select name="location"><option>Not decided yet</option><option>Mumbai</option><option>Navi Mumbai</option><option>Thane</option><option>Kalyan</option><option>Dombivli</option><option>Ambernath</option><option>Badlapur</option><option>Other MMR</option></select></label>
             <label class="full">Your requirement<textarea name="message" rows="3" placeholder="BHK, budget, preferred area or anything else…"></textarea></label>
