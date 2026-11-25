@@ -46,7 +46,7 @@ test('homepage category and budget filters behave consistently', async ({ page }
       price: card.querySelector('.price')?.textContent.trim()
     }))
   );
-  await page.locator('#minBudgetFilter').selectOption('50000000');
+  await page.locator('#minBudgetFilter').selectOption('10000000');
   await page.locator('#budgetFilter').selectOption('3000000');
   await page.getByRole('button', { name: /Search homes/ }).click();
   await expect(page.locator('#resultsCount')).not.toContainText('Loading');
