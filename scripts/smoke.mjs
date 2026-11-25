@@ -34,6 +34,11 @@ try {
     check(css.includes("DM Sans") || css.includes("Arial"), `${viewport.label}: stylesheet applied (${css})`);
     const cardCount = await page.locator(".property-card").count();
     check(cardCount > 0, `${viewport.label}: published property cards loaded from Supabase (${cardCount})`);
+    await page.locator("#quickFilters [data-filter=\"New Project\"]").click();
+    const filteredCards = await page.locator(".property-card").count();
+    const filterLabels = await page.locator(".property-card .tag").allTextContents();
+    check(filteredCards > 0 && filterLabels.every(label => label.toLowerCase().includes("new project")), `${viewport.label}: listing category filter works`);
+    await page.locator("#quickFilters [data-filter=\"All\"]").click();
     const overflow = await page.evaluate(() => document.documentElement.scrollWidth > document.documentElement.clientWidth + 2);
     check(!overflow, `${viewport.label}: no horizontal page overflow`);
     await page.locator(".property-card").first().click();
@@ -41,7 +46,7 @@ try {
     await page.waitForFunction(() => {
       const root = document.querySelector("#propertyDetail");
       return root && !root.textContent.includes("Loading property details") && root.textContent.trim().length > 50;
-    }, { timeout:30000 });
+    }, null, { timeout:30000 });
     check(true, `${viewport.label}: property detail page loads`);
     check(pageErrors.length === 0, `${viewport.label}: no uncaught browser errors${pageErrors.length ? " ("+pageErrors.join("; ")+")" : ""}`);
     await page.close();
