@@ -29,7 +29,7 @@ try {
     const pageErrors = [];
     page.on("pageerror", e => pageErrors.push(e.message));
     await page.goto(base, { waitUntil:"domcontentloaded" });
-    await page.waitForFunction(() => document.querySelectorAll(".property-card").length > 0, { timeout:30000 });
+    await page.waitForFunction(() => document.querySelectorAll(".property-card").length > 0, null, { timeout:30000 });
     const css = await page.evaluate(() => getComputedStyle(document.body).fontFamily);
     check(css.includes("DM Sans") || css.includes("Arial"), `${viewport.label}: stylesheet applied (${css})`);
     const cardCount = await page.locator(".property-card").count();
