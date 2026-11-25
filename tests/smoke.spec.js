@@ -4,7 +4,6 @@ async function openHome(page) {
   await page.goto('/');
   await expect(page.getByRole('heading', { name: 'Explore properties' })).toBeVisible();
   await expect(page.locator('#resultsCount')).not.toContainText('Loading properties');
-  await expect(page.locator('#propertyGrid')).toBeVisible().or(expect(page.locator('#emptyState')).toBeVisible());
 }
 
 test('homepage resources and published property cards resolve', async ({ page }) => {
@@ -18,25 +17,42 @@ test('homepage resources and published property cards resolve', async ({ page })
   if (Number.isFinite(count)) {
     await expect(page.locator('.property-card')).toHaveCount(count);
     if (count === 0) await expect(page.locator('#emptyState')).toBeVisible();
+    else await expect(page.locator('#propertyGrid')).toBeVisible();
   } else {
     expect(countText).toMatch(/temporarily unavailable|not connected/i);
   }
   expect(await pageErrors).toEqual([]);
 });
 
-test('homepage category and search filters remain usable', async ({ page }) => {
+test('homepage category and budget filters behave consistently', async ({ page }) => {
   await openHome(page);
   await page.locator('.chip[data-filter="Resale"]').click();
   await expect(page.locator('.chip[data-filter="Resale"]')).toHaveClass(/active/);
+  const resaleCards = page.locator('.property-card');
+  const resaleCount = await resaleCards.count();
+  if (resaleCount > 0) {
+    for (const card of await resaleCards.all()) {
+      await expect(card.locator('.tag')).toContainText(/resale/i);
+    }
+  } else {
+    await expect(page.locator('#emptyState')).toBeVisible();
+  }
+
   await page.locator('.chip[data-filter="All"]').click();
   await expect(page.locator('.chip[data-filter="All"]')).toHaveClass(/active/);
-
-  const originalCount = (await page.locator('.property-card').count());
+  const before = await page.locator('.property-card').evaluateAll(cards =>
+    cards.map(card => ({
+      id: card.dataset.id,
+      price: card.querySelector('.price')?.textContent.trim()
+    }))
+  );
   await page.locator('#minBudgetFilter').selectOption('50000000');
   await page.locator('#budgetFilter').selectOption('3000000');
   await page.getByRole('button', { name: /Search homes/ }).click();
   await expect(page.locator('#resultsCount')).not.toContainText('Loading');
-  expect(await page.locator('.property-card').count()).toBeLessThanOrEqual(originalCount);
+  const remainingIds = await page.locator('.property-card').evaluateAll(cards => cards.map(card => card.dataset.id));
+  const onlyUnpricedListings = before.filter(item => item.price === 'Price on request').map(item => item.id);
+  expect(remainingIds.sort()).toEqual(onlyUnpricedListings.sort());
 });
 
 test('a published card opens its property detail page when listings exist', async ({ page }) => {
