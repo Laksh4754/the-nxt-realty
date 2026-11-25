@@ -1,6 +1,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import vm from 'node:vm';
+import assert from 'node:assert/strict';
 import { fileURLToPath } from 'node:url';
 import { createClient } from '@supabase/supabase-js';
 
@@ -37,23 +38,37 @@ if (!url || url.protocol !== 'https:' || !url.hostname.endsWith('.supabase.co') 
   process.exit(1);
 }
 
-const client = createClient(url.href, keyValue);
+// The smoke check uses a fetch stub: it can validate a read-only Supabase
+// request without opening a network connection to the configured project.
+const requests = [];
+const client = createClient(url.href, keyValue, {
+  global: {
+    fetch: async (input, init = {}) => {
+      const requestUrl = new URL(typeof input === 'string' ? input : input.url);
+      const method = (init.method || input.method || 'GET').toUpperCase();
+      requests.push({ url: requestUrl, method });
+      return new Response(JSON.stringify([{ id: 'fixture-property' }]), {
+        status: 200,
+        headers: { 'Content-Type': 'application/json' }
+      });
+    }
+  }
+});
 try {
   const { data, error } = await client
     .from('properties')
     .select('id')
     .eq('status', 'published')
     .limit(1);
-  if (error) {
-    console.error(`Supabase smoke check failed: the published listings query was rejected (code ${/^[A-Z0-9]+$/.test(error.code || '') ? error.code : 'unavailable'}). No credentials or response details were printed.`);
-    process.exit(1);
-  }
-  if (!Array.isArray(data) || data.length === 0) {
-    console.error('Supabase smoke check failed: the published listings query returned no published listings. No credentials or response details were printed.');
-    process.exit(1);
-  }
-  console.log('Supabase smoke check passed: configuration is valid and at least one published listing is readable.');
+  assert.equal(error, null, 'mocked published-listings query should succeed');
+  assert.equal(requests.length, 1, 'the smoke check should issue exactly one request');
+  assert.equal(requests[0].method, 'GET', 'the smoke check must remain read-only');
+  assert.equal(requests[0].url.pathname, '/rest/v1/properties');
+  assert.equal(requests[0].url.searchParams.get('status'), 'eq.published');
+  assert.equal(requests[0].url.searchParams.get('limit'), '1');
+  assert.equal(data?.[0]?.id, 'fixture-property');
+  console.log('Supabase smoke check passed: valid public configuration and an intercepted, read-only fixture query. No network request was made.');
 } catch {
-  console.error('Supabase smoke check failed: the published listings query could not be completed. No credentials or response details were printed.');
+  console.error('Supabase smoke check failed: the configuration or intercepted read-only fixture query was invalid. No credentials or response details were printed.');
   process.exit(1);
 }
