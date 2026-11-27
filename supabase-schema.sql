@@ -14,7 +14,7 @@ create table if not exists public.properties (
  price numeric(14,2), carpet_area numeric(10,2), area_unit text not null default 'sq.ft.',
  bedrooms integer, bathrooms integer, description text, image_url text, gallery_urls text[] not null default '{}',
  amenities text[] not null default '{}', possession_status text, rera_id text, map_url text, brochure_url text,
- latitude double precision, longitude double precision, developer_name text, project_highlights text[] not null default '{}', payment_plan text, video_url text, virtual_tour_url text, floor_plans jsonb not null default '[]'::jsonb, configurations jsonb not null default '[]'::jsonb, project_type text not null default 'residential', featured boolean not null default false,
+ latitude double precision, longitude double precision, developer_name text, developer_logo_url text, project_logo_url text, lifestyle_highlights jsonb not null default '[]'::jsonb, media_assets jsonb not null default '[]'::jsonb, project_highlights text[] not null default '{}', payment_plan text, video_url text, virtual_tour_url text, floor_plans jsonb not null default '[]'::jsonb, configurations jsonb not null default '[]'::jsonb, project_type text not null default 'residential', featured boolean not null default false,
  status text not null default 'draft' check (status in ('draft','published','archived')),
  created_at timestamptz not null default now(), updated_at timestamptz not null default now()
 );
@@ -27,6 +27,10 @@ alter table public.properties add column if not exists map_url text;
 alter table public.properties add column if not exists brochure_url text;
 alter table public.properties add column if not exists latitude double precision;
 alter table public.properties add column if not exists longitude double precision;
+alter table public.properties add column if not exists developer_logo_url text;
+alter table public.properties add column if not exists project_logo_url text;
+alter table public.properties add column if not exists lifestyle_highlights jsonb not null default '[]'::jsonb;
+alter table public.properties add column if not exists media_assets jsonb not null default '[]'::jsonb;
 
 create table if not exists public.leads (
  id uuid primary key default gen_random_uuid(), name text not null, phone text not null,
