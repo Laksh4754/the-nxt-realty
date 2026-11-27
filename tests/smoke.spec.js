@@ -73,6 +73,30 @@ async function openHome(page) {
   await expect(page.locator('.property-card')).toHaveCount(3);
 }
 
+
+const detailFixture = {
+  id: '44444444-4444-4444-8444-444444444444', status: 'published',
+  project_name: 'Sai World Dreams', title: 'Sai World Dreams', developer_name: 'Paradise Group',
+  location: 'Dombivli', locality: 'Dombivli', listing_type: 'New Project', possession_status: 'Under construction',
+  description: 'A premium residential development in Dombivli.',
+  image_url: 'https://images.example.test/hero.jpg',
+  gallery_urls: ['https://images.example.test/gallery-1.jpg', 'https://images.example.test/gallery-2.jpg'],
+  configurations: [{ label: '1 BHK', price: 6500000, area: '450 sq.ft.', bedrooms: 1,
+    floor_plans: [{ url: 'https://images.example.test/1bhk-plan.jpg', name: '1 BHK floor plan', type: 'image/jpeg' }] }],
+  amenities: ['Swimming pool', 'Gym'], map_url: 'https://maps.google.com/?q=Sai+World+Dreams+Dombivli',
+  project_logo_url: '', developer_logo_url: '', lifestyle_highlights: [], media_assets: []
+};
+
+async function openDetailFixture(page) {
+  await isolateNetwork(page);
+  await page.route('**/rest/v1/properties*', async route => {
+    if (route.request().method() !== 'GET') { await route.abort('blockedbyclient'); return; }
+    await route.fulfill({ status: 200, headers: corsHeaders, contentType: 'application/json', body: JSON.stringify([detailFixture]) });
+  });
+  await page.goto('/property.html?id=' + detailFixture.id);
+  await expect(page.locator('.project-hero h1')).toHaveText('Sai World Dreams');
+}
+
 test('homepage resources and fixture property cards resolve', async ({ page }) => {
   const leadRequests = await isolateNetwork(page);
   const pageErrors = [];
@@ -150,6 +174,114 @@ test('valid enquiry records and aborts the lead request before it can reach Supa
     consent: true,
     status: 'new'
   });
+});
+
+
+test('property detail keeps one hero CTA and contextual section and card actions', async ({ page, isMobile }) => {
+  await openDetailFixture(page);
+  const detail = page.locator('#propertyDetail');
+  await expect(detail.locator('.project-hero-copy button')).toHaveText('Enquire Now');
+  await expect(detail.locator('.project-hero-meta .listing-card-enquire')).toHaveCount(0);
+  await expect(detail.locator('.project-gallery-heading .section-enquire')).toHaveText('See All Pictures');
+  await expect(detail.locator('.amenity-list .listing-card-enquire')).toHaveCount(0);
+  await expect(detail.locator('.amenity-list + .section-enquire')).toHaveText('Enquire about amenities');
+  await expect(detail.locator('.configuration-cards + .section-enquire')).toHaveText('Enquire about pricing');
+  await expect(detail.locator('.property-map-card > .listing-card-enquire')).toHaveCount(1);
+  await expect(detail.locator('.floor-plan-item > .listing-card-enquire')).toHaveCount(1);
+
+  const summary = detail.locator('.configuration-summary').first();
+  const configAction = summary.locator('.listing-card-enquire');
+  if (isMobile) {
+    await summary.click();
+    await expect(summary).toHaveClass(/is-revealed/);
+  } else {
+    await summary.hover();
+    await expect(configAction).toHaveCSS('opacity', '1');
+  }
+  await configAction.click();
+  await expect(page.locator('#resourceGateDialog')).toBeVisible();
+  await expect(page.locator('#resourceGateTitle')).toContainText('1 BHK configuration');
+  await expect(page.locator('#resourceGateForm [name="configuration"]')).toHaveValue('1 BHK');
+  await page.locator('.resource-gate-close').click();
+
+  const plan = detail.locator('.floor-plan-item').first();
+  const planAction = plan.locator('.listing-card-enquire');
+  if (isMobile) await plan.click(); else await plan.hover();
+  await planAction.click();
+  await expect(page.locator('#resourceGateTitle')).toContainText('1 BHK · 1 BHK floor plan');
+  await expect(page.locator('#resourceGateForm [name="configuration"]')).toHaveValue('1 BHK');
+  await page.locator('.resource-gate-close').click();
+
+  const mapCard = detail.locator('.property-map-card');
+  if (isMobile) await mapCard.click(); else await mapCard.hover();
+  await mapCard.locator('.listing-card-enquire').click();
+  await expect(page.locator('#resourceGateTitle')).toContainText('the project location');
+  await page.locator('.resource-gate-close').click();
+});
+
+test('map enquiry opens Maps only after a successful mocked save', async ({ page }) => {
+  const leads = [];
+  await openDetailFixture(page);
+  await page.route('**/rest/v1/leads*', async route => {
+    if (route.request().method() === 'OPTIONS') { await route.fulfill({ status: 204, headers: corsHeaders }); return; }
+    leads.push(route.request().postDataJSON());
+    await route.fulfill({ status: 201, headers: corsHeaders, body: '' });
+  });
+  await page.getByRole('button', { name: /Open in Google Maps/ }).click();
+  await expect(page.locator('#resourceGateTitle')).toContainText('the project location');
+  const form = page.locator('#resourceGateForm');
+  await form.locator('[name="name"]').fill('Fixture Visitor');
+  await form.locator('[name="phone"]').fill('+91 98765 43210');
+  await form.locator('[name="consent"]').check();
+  await form.getByRole('button', { name: 'Send enquiry' }).click();
+  await expect(page.locator('#resourceGateDialog')).toBeHidden();
+  expect(leads).toHaveLength(1);
+  expect(leads[0]).toMatchObject({ requirement: 'Google Maps directions', source: 'property_maps', consent: true });
+  expect(await page.evaluate(() => window.__openedWhatsApp)).toBe(detailFixture.map_url);
+});
+
+test('map save failure does not redirect and cancellation creates no lead request', async ({ page }) => {
+  const leads = [];
+  await openDetailFixture(page);
+  await page.route('**/rest/v1/leads*', async route => {
+    if (route.request().method() === 'OPTIONS') { await route.fulfill({ status: 204, headers: corsHeaders }); return; }
+    leads.push(route.request().postDataJSON());
+    await route.fulfill({ status: 500, headers: corsHeaders, body: '{"message":"fixture failure"}' });
+  });
+  await page.getByRole('button', { name: /Open in Google Maps/ }).click();
+  await page.locator('.resource-gate-close').click();
+  expect(leads).toHaveLength(0);
+  expect(await page.evaluate(() => window.__openedWhatsApp)).toBeUndefined();
+
+  await page.getByRole('button', { name: /Open in Google Maps/ }).click();
+  const form = page.locator('#resourceGateForm');
+  await form.locator('[name="name"]').fill('Fixture Visitor');
+  await form.locator('[name="phone"]').fill('+91 98765 43210');
+  await form.locator('[name="consent"]').check();
+  await form.getByRole('button', { name: 'Send enquiry' }).click();
+  await expect(page.locator('#resourceGateNote')).toContainText(/we could not save your request/i);
+  expect(leads).toHaveLength(1);
+  expect(await page.evaluate(() => window.__openedWhatsApp)).toBeUndefined();
+});
+
+test('admin image uploads show before and after review and require approval', async ({ page }) => {
+  await isolateNetwork(page);
+  await page.goto('/admin.html');
+  await page.evaluate(() => { document.querySelector('#dashboard').classList.remove('hidden'); document.querySelector('#propertyForm').classList.remove('hidden'); });
+  const projectLogo = page.locator('input[name="project_logo_file"]');
+  const developerLogo = page.locator('input[name="developer_logo_file"]');
+  await expect(projectLogo).toHaveCount(1);
+  await expect(developerLogo).toHaveCount(1);
+  await projectLogo.setInputFiles(path.join(root, 'assets/sai-world-dreams-logo.jpg'));
+  const review = page.locator('.media-review-card');
+  await expect(review).toContainText('sai-world-dreams-logo.jpg');
+  await expect(review).toContainText('Before');
+  await expect(review).toContainText('After');
+  await page.evaluate(() => document.querySelector('#propertyForm').classList.remove('hidden'));
+  const save = page.locator('#savePropertyBtn');
+  await expect(save).toHaveAttribute('data-media-ready', 'false');
+  await review.getByRole('button', { name: 'Approve this image' }).click();
+  await expect(save).toHaveAttribute('data-media-ready', 'true');
 });
 
 test('admin page presents the sign-in screen in a clean browser context', async ({ page }) => {
