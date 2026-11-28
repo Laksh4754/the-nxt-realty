@@ -54,3 +54,17 @@
 
 /* Subtle section-level contextual enquiry actions. */
 .project-gallery-heading{display:flex;align-items:center;justify-content:space-between;gap:16px;margin:30px 0 12px}.project-gallery-heading h2{font:29px var(--serif);color:var(--navy);margin:0}.section-enquire{display:inline-flex;align-items:center;justify-content:flex-start;min-height:34px;padding:4px 0;border:0;background:transparent;color:#9a783f;font:700 10px Arial,sans-serif;text-decoration:none;cursor:pointer}.section-enquire:hover,.section-enquire:focus-visible{color:var(--navy);text-decoration:underline;text-underline-offset:4px;outline-offset:3px}.project-gallery-heading .section-enquire{white-space:nowrap}.project-gallery{margin-bottom:32px}@media(max-width:520px){.project-gallery-heading{align-items:flex-start;flex-direction:column;gap:4px}.section-enquire{min-height:40px}}
+
+/* Private floor-plan teaser: no source URL is rendered until the gated request succeeds. */
+.gated-plan-preview { position:relative;display:grid;place-items:center;min-height:250px;overflow:hidden;isolation:isolate;background:linear-gradient(135deg,#e8e3d8,#f6f3ec 40%,#ddd7ca); }
+.plan-blur-art { position:absolute;inset:-20px;filter:blur(10px);opacity:.5;transform:rotate(-7deg);background:repeating-linear-gradient(0deg,transparent 0 42px,#7b756b 43px 45px,transparent 46px 80px),repeating-linear-gradient(90deg,transparent 0 48px,#7b756b 49px 51px,transparent 52px 93px); }
+.floor-plan-preview-thumb{display:block;width:100%;height:100%;object-fit:contain;filter:blur(2px);transform:scale(1.01)}
+.gated-plan-preview:after{content:"";position:absolute;inset:0;background:rgba(255,252,244,.1);pointer-events:none}
+.plan-preview-overlay{z-index:1;background:rgba(255,255,255,.74);color:#344b55;border:1px solid rgba(95,105,105,.18)}
+.plan-blur-art i { position:absolute;border:4px solid #625e55;inset:12% 30% 20% 16%; }
+.plan-blur-art i:nth-child(2) { inset:21% 9% 52% 55%; }
+.plan-blur-art i:nth-child(3) { inset:52% 10% 14% 55%; }
+.plan-blur-art i:nth-child(4) { inset:70% 40% 5% 12%; }
+.plan-preview-overlay { position:relative;background:#112a38e8;color:#fff;padding:11px 14px;font-size:8px;letter-spacing:.15em; }
+.view-floor-plan { border:0;background:var(--navy);color:#fff;min-height:42px;padding:0 14px;font-size:10px;font-weight:700;cursor:pointer; }
+.view-floor-plan span { color:#e0c58f; }

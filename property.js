@@ -52,19 +52,15 @@
     const srcset=candidates.length>1?` srcset="${candidates.map(x=>`${esc(x.url)} ${x.width}w`).join(', ')}" sizes="(max-width: 720px) 100vw, 1200px"`:'';
     return `<img data-media-fallback src="${esc(url)}"${srcset} alt="${esc(alt)}" loading="lazy">`;
   };
-  const floorPlanCards = (items, configuration, assets=[]) => (Array.isArray(items) ? items : []).map((item, index) => {
+  const floorPlanCards = (items, configuration, assets=[]) => (Array.isArray(items) ? items : []).filter(item => item && item.visible !== false && item.featured === true).sort((a,b)=>(a.sort_order||0)-(b.sort_order||0)).slice(0,1).map((item, index) => {
     const record = typeof item === 'string' ? {url:item} : item || {};
-    const url = safeUrl(record.url);
-    if (!url) return '';
+    const path = typeof record.path === 'string' && record.path.startsWith('floor-plans/') && !record.path.includes('..') && !record.path.includes('\\') ? record.path : '';
+    // Legacy public URLs bypass the consent and signed-URL flow; never render them.
+    if (!path) return '';
     const name = record.name || `Floor plan ${index + 1}`;
-    const isPdf = record.type === 'application/pdf' || /\.pdf(?:$|[?#])/i.test(url);
-    const isImage = !isPdf && (/^image\//.test(record.type || '') || /\.(?:jpe?g|png|webp)(?:$|[?#])/i.test(url));
-    const preview = isImage
-      ? responsiveImage(url, `${configuration} · ${name}`, assets)
-      : isPdf
-        ? `<iframe src="${esc(url)}#view=FitH" title="${esc(configuration)} · ${esc(name)}" loading="lazy"></iframe>`
-        : `<div class="floor-plan-file-placeholder">${esc(record.type || 'Project file')}</div>`;
-    return `<figure class="floor-plan-item"><div class="floor-plan-preview ${isPdf ? 'is-document' : ''}">${preview}</div><figcaption><div><strong>${esc(configuration)}</strong><span>${esc(name)}</span></div><a href="${esc(url)}" target="_blank" rel="noopener">Open full plan ↗</a></figcaption></figure>`;
+    const isPdf = record.type === 'application/pdf';
+    const thumbnail = !isPdf ? safeUrl(record.thumbnail_url) : null;
+    return `<figure class="floor-plan-item is-gated-plan" data-floor-plan-path="${esc(path)}" data-floor-plan-type="${esc(record.type || '')}"><div class="floor-plan-preview gated-plan-preview ${isPdf ? 'is-document' : ''}" aria-label="Obscured preview of ${esc(configuration)} floor plan">${thumbnail ? `<img class="floor-plan-preview-thumb" src="${esc(thumbnail)}" alt="Blurred preview of ${esc(configuration)} floor plan">` : '<div class="plan-blur-art" aria-hidden="true"><i></i><i></i><i></i><i></i></div>'}<span class="plan-preview-overlay">PRIVATE FLOOR PLAN</span></div><figcaption><div><strong>${esc(configuration)}</strong><span>${esc(name)}</span></div><button class="view-floor-plan" type="button">View floor plan <span aria-hidden="true">↗</span></button></figcaption></figure>`;
   }).join('');
 
 
@@ -97,13 +93,13 @@
       ${configs.length ? `<h2>Configurations & pricing</h2><div class="configuration-cards">${configs.map(c => `<article class="configuration-card"><div class="configuration-summary"><span>${esc(c.label || 'Configuration')}</span><strong>${c.price ? money(c.price) : 'Price on request'}</strong><small>${esc(c.area || 'Area on request')}${c.bedrooms ? ` · ${esc(c.bedrooms)} bedrooms` : ''}</small></div>${floorPlanCards(c.floor_plans, c.label || 'Configuration', mediaAssets) ? `<div class="configuration-floor-plans">${floorPlanCards(c.floor_plans, c.label || 'Configuration', mediaAssets)}</div>` : ''}</article>`).join('')}</div>` : `<h2>Property details</h2><div class="detail-spec-grid"><div><small>Configuration</small><strong>${esc(p.property_type || 'Contact for details')}</strong></div><div><small>Carpet area</small><strong>${esc(p.carpet_area ? `${p.carpet_area} ${p.area_unit || 'sq.ft.'}` : 'On request')}</strong></div><div><small>Asking price</small><strong>${money(p.price)}</strong></div></div>`}
       ${amenities.length ? `<h2>Amenities & lifestyle</h2><div class="amenity-list">${amenities.map(a => `<span>${esc(a)}</span>`).join('')}</div>` : ''}
       ${p.payment_plan ? `<h2>Payment plan</h2><p>${esc(p.payment_plan)}</p>` : ''}
-      ${plans.some(x => safeUrl(typeof x === 'string' ? x : x.url)) ? `<h2>Additional floor plans</h2><div class="project-floor-plan-list">${floorPlanCards(plans, p.project_name || p.title || 'Project', mediaAssets)}</div>` : ''}
+      ${floorPlanCards(plans, p.project_name || p.title || 'Project', mediaAssets) ? `<h2>Additional floor plans</h2><div class="project-floor-plan-list">${floorPlanCards(plans, p.project_name || p.title || 'Project', mediaAssets)}</div>` : ''}
       ${video || tour ? `<h2>Explore the project</h2><div class="project-link-list">${resourceAction(video, 'Watch project video')}${resourceAction(tour, 'Open virtual tour')}</div>` : ''}
       ${brochure ? `<h2>Project brochure</h2><div class="project-link-list">${resourceAction(brochure, 'Download brochure')}</div>` : ''}
       ${map ? `<h2>Location & connectivity</h2><div class="property-map-card"><div class="property-map-surface" role="img" aria-label="Stylized map preview for ${esc(propertyLocation)}"><svg viewBox="0 0 720 260" aria-hidden="true"><path d="M-20 190 C110 120 210 255 330 160 S540 62 750 150 M45 275 L610 -20 M-20 70 L740 230 M210 -20 L460 290"/><circle cx="370" cy="132" r="22"/><circle cx="370" cy="132" r="6"/><text x="405" y="126">${esc(propertyName)}</text><text x="62" y="218">${esc(propertyLocation)}</text></svg><span>LOCATION PREVIEW</span></div></div><div class="project-link-list">${resourceAction(map, 'Open in Google Maps')}</div>` : ''}
       <p class="detail-disclaimer">Prices, availability, carpet areas, amenities, possession dates, approvals and RERA details are subject to verification and change. Please independently verify all information before making a decision.</p></div>
       <aside class="detail-enquire"><h3>Interested in this project?</h3><p>Speak with our team or request a site visit.</p><a class="btn btn-gold" target="_blank" rel="noopener" href="${waLink(p)}">Enquire on WhatsApp ↗</a><a class="btn btn-navy" href="index.html#contact">Request a callback</a>${p.rera_id ? `<small class="rera-note">RERA: ${esc(p.rera_id)}</small>` : ''}</aside></section>
-      <dialog class="resource-gate-dialog" id="resourceGateDialog" aria-labelledby="resourceGateTitle"><form id="resourceGateForm" class="resource-gate-form"><button class="resource-gate-close" type="button" aria-label="Close dialog">×</button><p class="eyebrow">PROJECT INFORMATION</p><h2 id="resourceGateTitle">Access project details</h2><p class="resource-gate-copy">Please share your details and consent to be contacted by the project team to access <strong id="resourceGateLabel">this resource</strong>.</p><input type="hidden" name="configuration"><label>Your name <input name="name" autocomplete="name" required maxlength="120" placeholder="Enter your name"></label><label>Phone number <input name="phone" type="tel" inputmode="tel" autocomplete="tel" required pattern="[+0-9()\\s-]{8,18}" maxlength="18" placeholder="+91 98765 43210"></label><label class="resource-gate-consent"><input name="consent" type="checkbox" required> I agree that the project team may use my details to respond to this request.</label><p class="resource-gate-note" id="resourceGateNote" role="status" aria-live="polite"></p><button class="btn btn-gold resource-gate-submit" type="submit">Submit & access resource ↗</button></form></dialog>`;
+      <dialog class="resource-gate-dialog" id="resourceGateDialog" aria-labelledby="resourceGateTitle"><form id="resourceGateForm" class="resource-gate-form"><button class="resource-gate-close" type="button" aria-label="Close dialog">×</button><p class="eyebrow">PROJECT INFORMATION</p><h2 id="resourceGateTitle">Access project details</h2><p class="resource-gate-copy">Please share your details and consent to be contacted by the project team to access <strong id="resourceGateLabel">this resource</strong>.</p><input type="hidden" name="configuration"><label>Your name <input name="name" autocomplete="name" required maxlength="120" placeholder="Enter your name"></label><label>Phone number <input name="phone" type="tel" inputmode="tel" autocomplete="tel" required pattern="[+0-9()\\s\\-]{8,18}" maxlength="18" placeholder="+91 98765 43210"></label><label class="resource-gate-consent"><input name="consent" type="checkbox" required> I agree that the project team may use my details to respond to this request.</label><p class="resource-gate-note" id="resourceGateNote" role="status" aria-live="polite"></p><button class="btn btn-gold resource-gate-submit" type="submit">Submit & access resource ↗</button></form></dialog>`;
 
     const heroEnquire=root.querySelector('.project-hero-copy > a.btn-gold');
     if(heroEnquire){const button=document.createElement('button');button.type='button';button.className=heroEnquire.className;button.textContent='Enquire Now';heroEnquire.replaceWith(button);button.addEventListener('click',()=>openContextualEnquiry('this project','',{requirement:'Property enquiry',source:'property_hero'}));}
@@ -118,7 +114,7 @@
     const gateTitle=root.querySelector('#resourceGateTitle'), gateCopy=root.querySelector('.resource-gate-copy'), gateSubmit=gateForm.querySelector('.resource-gate-submit');
     const touchInput=matchMedia('(hover: none), (pointer: coarse)');
     function openContextualEnquiry(label, configuration, context={}) {
-      pendingResource={url:context.url||null,label,configuration,requirement:context.requirement||'Property enquiry',source:context.source||'property_enquiry'}; gateForm.reset();
+      pendingResource={url:context.url||null,floorPlanPath:context.floorPlanPath||null,requirePrivatePlan:context.requirePrivatePlan===true,controller:context.requirePrivatePlan?new AbortController():null,label,configuration,requirement:context.requirement||'Property enquiry',source:context.source||'property_enquiry'}; gateForm.reset();
       gateTitle.textContent='Enquire about '+label; gateCopy.replaceChildren(document.createTextNode('Share your details and the project team will follow up about '),gateLabel,document.createTextNode('.')); gateLabel.textContent=label; gateSubmit.textContent='Send enquiry'; gateNote.textContent=''; gateForm.elements.configuration.value=configuration||''; gate.showModal();
     }
     function addSectionEnquiry(after, label, text, requirement, source) { const button=document.createElement('button');button.type='button';button.className='section-enquire';button.textContent=text;button.setAttribute('aria-label',text);button.addEventListener('click',()=>openContextualEnquiry(label,'',{requirement,source}));after.insertAdjacentElement('afterend',button);return button; }
@@ -134,14 +130,14 @@
     }
     root.querySelectorAll('.configuration-summary').forEach(summary=>{const configuration=summary.querySelector(':scope > span')?.textContent.trim()||'Configuration';attachCardAction(summary,configuration+' configuration',configuration,'configuration');});
     root.querySelectorAll('.property-map-card').forEach(card=>attachCardAction(card,'the project location','', 'map'));
-    root.querySelectorAll('.floor-plan-item').forEach(card=>{const configuration=card.querySelector('figcaption strong')?.textContent.trim()||'Configuration';const name=card.querySelector('figcaption span')?.textContent.trim()||'floor plan';attachCardAction(card,configuration+' · '+name,configuration,'floor-plan');});
+    root.querySelectorAll('.floor-plan-item').forEach(card=>{const configuration=card.querySelector('figcaption strong')?.textContent.trim()||'Configuration';const name=card.querySelector('figcaption span')?.textContent.trim()||'floor plan';const button=card.querySelector('.view-floor-plan');button?.addEventListener('click',()=>openContextualEnquiry(configuration+' · '+name,configuration,{floorPlanPath:card.dataset.floorPlanPath,requirePrivatePlan:true,requirement:'Floor-plan enquiry',source:'property_floor_plan'}));});
 
     root.querySelectorAll('.resource-access-btn').forEach(button => button.addEventListener('click', () => {
       openContextualEnquiry('the project location','',{url:button.dataset.resourceUrl,requirement:'Google Maps directions',source:'property_maps'});
     }));
     root.querySelector('.resource-gate-close')?.addEventListener('click', () => gate.close());
     gate?.addEventListener('click', event => { if (event.target === gate) gate.close(); });
-    gate?.addEventListener('close',()=>{if(pendingResource){pendingResource.cancelled=true;pendingResource.popup?.close();pendingResource=null;}});
+    gate?.addEventListener('close',()=>{if(pendingResource){pendingResource.cancelled=true;pendingResource.controller?.abort();pendingResource.popup?.close();pendingResource=null;}});
     gateForm?.addEventListener('submit', async event => {
       event.preventDefault(); const intent=pendingResource;
       if (!intent || !gateForm.reportValidity()) return;
@@ -151,9 +147,13 @@
       const popup=intent.url?window.open('about:blank','_blank'):null; intent.popup=popup; const submit=gateSubmit; submit.disabled=true; gateNote.textContent='Saving your request securely…';
       try {
         const requirement=intent.requirement||'Property enquiry'; const context=[intent.label?`Requested ${intent.label}.`:'',configuration?`Configuration: ${configuration}.`:'',intent.requirement==='Google Maps directions'?`Location: ${p.locality||p.location||'project location'}.`:''].filter(Boolean).join(' ');
-        const {error}=await db.from('leads').insert({name,phone,requirement,preferred_location:p.locality||p.location||null,message:`${context} Project: ${p.project_name||p.title||'this project'}.`,source:intent.source||'property_enquiry',consent:true,status:'new'}); if(error)throw error;
+        let authorizedPlanUrl=null;
+        if(intent.requirePrivatePlan){
+          const {data,error}=await db.functions.invoke('floor-plan-access',{signal:intent.controller?.signal,body:{property_id:p.id,plan_path:intent.floorPlanPath,configuration,label:intent.label,name,phone,requirement,preferred_location:p.locality||p.location||null,message:`${context} Project: ${p.project_name||p.title||'this project'}.`,source:intent.source||'property_floor_plan',consent:true}}); if(error||!data?.signed_url)throw error||new Error('Floor plan access is not configured.'); authorizedPlanUrl=data.signed_url;
+        } else { const {error}=await db.from('leads').insert({name,phone,requirement,preferred_location:p.locality||p.location||null,message:`${context} Project: ${p.project_name||p.title||'this project'}.`,source:intent.source||'property_enquiry',consent:true,status:'new'}); if(error)throw error; }
         if(intent.cancelled||pendingResource!==intent||!gate.open){popup?.close();return;}
         if(intent.url){gateNote.textContent='Your request has been saved. Opening the requested location…'; if(popup){popup.opener=null;popup.location.href=intent.url;pendingResource=null;gate.close();}else{pendingResource=null;const link=document.createElement('a');link.href=intent.url;link.target='_blank';link.rel='noopener';link.className='resource-gate-fallback';link.textContent=`Tap here to open ${intent.label}`;gateNote.append(' ',link);}}
+        else if(authorizedPlanUrl){const link=document.createElement('a');link.href=authorizedPlanUrl;link.target='_blank';link.rel='noopener';link.className='resource-gate-fallback';link.textContent='Open your floor plan ↗';gateNote.textContent='Your enquiry has been saved. Your selected floor plan is ready: ';gateNote.append(link);pendingResource=null;}
         else {gateNote.textContent='Your enquiry has been saved. The project team will follow up.';gateForm.reset();gateSubmit.textContent='Enquiry saved';pendingResource=null;}
       } catch(error) {popup?.close();if(!intent.cancelled&&pendingResource===intent&&gate.open){console.error('Project enquiry save failed',error);gateNote.textContent='We could not save your request. Please try again; no redirect was made.';}}
       finally {submit.disabled=false;}

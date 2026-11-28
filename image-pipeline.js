@@ -11,6 +11,20 @@
     else { ctx.drawImage(bitmap, 0, 0, canvas.width, canvas.height); }
     return canvas;
   }
+  function makeFloorPlanPreview(bitmap) {
+    const scale = Math.min(320 / bitmap.width, 200 / bitmap.height);
+    const width = Math.max(1, Math.round(bitmap.width * scale));
+    const height = Math.max(1, Math.round(bitmap.height * scale));
+    const bleed = 48;
+    const padded = document.createElement('canvas'); padded.width = width + bleed * 2; padded.height = height + bleed * 2;
+    const paddedContext = padded.getContext('2d'); paddedContext.fillStyle = '#e8e3d8'; paddedContext.fillRect(0, 0, padded.width, padded.height);
+    paddedContext.drawImage(bitmap, bleed, bleed, width, height);
+    const blurred = document.createElement('canvas'); blurred.width = padded.width; blurred.height = padded.height;
+    const blurContext = blurred.getContext('2d'); blurContext.filter = 'blur(24px)'; blurContext.drawImage(padded, 0, 0); blurContext.filter = 'none';
+    const preview = document.createElement('canvas'); preview.width = width; preview.height = height;
+    preview.getContext('2d').drawImage(blurred, bleed, bleed, width, height, 0, 0, width, height);
+    return preview;
+  }
   async function inspectPixels(bitmap) {
     const scale = Math.min(1, 480 / Math.max(bitmap.width, bitmap.height));
     const w = Math.max(1, Math.round(bitmap.width * scale)), h = Math.max(1, Math.round(bitmap.height * scale));
@@ -45,7 +59,7 @@
       if(kind!=='floor-plan' && (ratio<.52 || ratio>2.5)) warnings.push('Unusual aspect ratio. The full image will be kept without a forced crop.');
       const floorPlan=kind==='floor-plan';
       const maxSide=floorPlan?320:1600, scale=Math.min(1,maxSide/Math.max(width,height));
-      const base=drawScaled(bitmap,width*scale,height*scale), thumbScale=Math.min(320/width,200/height), thumb=drawScaled(bitmap,width*thumbScale,height*thumbScale);
+      const base=drawScaled(bitmap,width*scale,height*scale), thumbScale=Math.min(320/width,200/height), thumb=floorPlan?makeFloorPlanPreview(bitmap):drawScaled(bitmap,width*thumbScale,height*thumbScale);
       const candidatePrimary=floorPlan?{blob:file,ext:(file.name.split('.').pop()||'bin').toLowerCase(),type:file.type}:await encode(base,.88); const encodedPrimary=!floorPlan && scale===1 && candidatePrimary.blob.size>=file.size?{blob:file,ext:(file.name.split('.').pop()||'jpg').toLowerCase(),type:file.type}:candidatePrimary; const primary=encodedPrimary.blob;
       const variants=[];
       if(!floorPlan) for(const target of [320,480,640,960]) if(Math.max(width,height)>target){const sc=target/Math.max(width,height), rendition=drawScaled(bitmap,width*sc,height*sc), encoded=await encode(rendition,.84); variants.push({width:Math.round(width*sc),blob:encoded.blob,type:encoded.type,ext:encoded.ext});}

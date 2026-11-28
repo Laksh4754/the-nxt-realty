@@ -1,22 +1,23 @@
 # Release and rollback checklist
 
-These checks prepare a release. They do not deploy the site.
+These checks prepare a release; production changes happen only after local integration checks and pull request CI pass.
 
 ## Before release
 
-- [ ] Review the change and confirm it does not alter listing data, design, or Supabase policies.
-- [ ] Confirm the **Static assets and Supabase smoke** and **Playwright desktop and mobile smoke** checks pass on the pull request. These are the stable GitHub Actions check names; require these exact names in repository rules.
-- [ ] Verify that active ruleset or classic branch protection for `main` requires `Static assets and Supabase smoke` and `Playwright desktop and mobile smoke`, requires pull requests, and blocks force pushes/deletion. The repository owner previously reported saving classic protection; this pull request does not change those GitHub settings.
-- [ ] **Owner confirmation required:** identify the hosting project that currently serves the production domain, then confirm its production branch is `main` and production deploys are gated on required GitHub checks where supported. Vercel and Cloudflare Pages preview notifications do not establish which host owns production. Do not change host settings until the production project and domain are confirmed. A GitHub Actions workflow alone cannot enforce repository branch rules or hosting-project settings.
-- [ ] Review the exact production change and approve it before merge or deploy.
-- [ ] After an approved release, open the production URL on desktop and mobile; verify the homepage, filters, property detail, images, enquiry links, and browser console.
+- [ ] Review the change: it adds private floor-plan storage and admin-only storage policies, plus an Edge Function that records a consented enquiry before issuing a five-minute signed URL. It does not move or delete existing objects or modify listing/enquiry rows.
+- [ ] Confirm the **Static assets and Supabase smoke** and **Playwright desktop and mobile smoke** GitHub Actions checks pass on the pull request.
+- [ ] Verify `main` requires these checks and a pull request, and blocks force pushes and deletion.
+- [ ] Production is served by Vercel with `main` as its production branch (confirmed during release preparation). Verify the production deployment after merging.
+- [ ] Run migration, storage-policy, Edge Function, enquiry and signed-URL checks against local Supabase with dummy data before changing production. Browser tests use a mocked backend and do not satisfy this requirement.
+- [ ] Record the live baseline, then apply the additive migration and deploy the Edge Function only after all checks pass. Keep the `private` schema out of Data API exposed schemas and configure the function's service-role key through Supabase function secrets.
+- [ ] After release, verify the production site on desktop and mobile: homepage, filters, a property detail, images, enquiry links and browser console. Test a real floor-plan unlock if a plan has been added to a listing.
 
 ## If a release breaks the site
 
-1. **Owner confirmation required:** use the confirmed production host’s deployment history to identify the last known-good production deployment. The repository does not establish whether production is hosted by Vercel or Cloudflare Pages.
-2. Use that host’s rollback or promote-to-production action. Confirm the production domain points to the restored deployment.
-3. Recheck the homepage, a published property detail page, and the Supabase listing status on desktop and mobile.
-4. Revert or fix the offending GitHub change in a reviewed pull request. Keep the broken deployment and check logs available for diagnosis.
-5. Resume releases only after the required checks pass and a reviewer approves.
+1. Use Vercel deployment history to identify the last known-good production deployment.
+2. Use Vercel's rollback or promote action and verify the production domain points to the restored deployment.
+3. Recheck the homepage, a published property detail page and Supabase listing status on desktop and mobile.
+4. Revert or fix the offending GitHub change in a pull request. Keep the failed deployment and check logs available for diagnosis.
+5. Resume releases only after the required checks pass.
 
-The production host remains unconfirmed from repository evidence. The repository owner must identify the production project and domain before relying on host-specific release or rollback steps. This pull request does not change GitHub rulesets or hosting settings.
+This checklist does not change GitHub rulesets or hosting settings.

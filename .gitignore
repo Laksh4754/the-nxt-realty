@@ -1,3 +1,4 @@
+work/
 .env
 .env.*
 !.env.example
@@ -7,5 +8,7 @@ test-results/
 playwright-report/
 .DS_Store
 Thumbs.db
-.vercel
-.env*
+.vercel/
+debug.log
+assets/floor-plans/
+assets/floor-plan-previews/

@@ -40,9 +40,19 @@ create table if not exists public.leads (
  created_at timestamptz not null default now(), updated_at timestamptz not null default now()
 );
 
-create or replace function public.is_nxt_admin() returns boolean language sql stable security definer set search_path=public as $$
+create schema if not exists private;
+revoke all on schema private from public, anon, authenticated;
+grant usage on schema private to authenticated;
+create or replace function private.is_nxt_admin() returns boolean language sql stable security definer set search_path=pg_catalog as $$
  select exists(select 1 from public.admin_users where user_id=(select auth.uid()));
 $$;
+revoke all on function private.is_nxt_admin() from public, anon, authenticated;
+grant execute on function private.is_nxt_admin() to authenticated;
+create or replace function public.is_nxt_admin() returns boolean language sql stable security invoker set search_path=pg_catalog as $$
+ select private.is_nxt_admin();
+$$;
+revoke all on function public.is_nxt_admin() from public, anon;
+grant execute on function public.is_nxt_admin() to authenticated;
 alter table public.admin_users enable row level security;
 alter table public.properties enable row level security;
 alter table public.leads enable row level security;
@@ -85,7 +95,7 @@ grant insert, select, update, delete on public.properties to authenticated;
 grant insert on public.leads to anon, authenticated;
 grant select, update, delete on public.leads to authenticated;
 grant select on public.admin_users to authenticated;
-grant execute on function public.is_nxt_admin() to anon, authenticated;
+grant execute on function public.is_nxt_admin() to authenticated;
 
 -- After creating the admin in Authentication > Users, allow that UUID to manage listings and leads:
 -- insert into public.admin_users(user_id) values ('YOUR-AUTH-USER-UUID');

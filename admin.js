@@ -10,29 +10,41 @@
   const esc = v => String(v ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
   const formatPrice = v => v === null || v === undefined || v === '' ? 'Price on request' : `₹${Number(v).toLocaleString('en-IN')}`;
   const bucket = cfg.PROPERTY_IMAGE_BUCKET || 'property-images';
+  const floorPlanBucket = cfg.FLOOR_PLAN_BUCKET || 'floor-plan-private';
 
   function planFileRow(host, plan) {
     const url = typeof plan === 'string' ? plan : plan?.url;
-    if (!url) return;
-    const row = document.createElement('div'); row.className = 'saved-media-row'; row.dataset.url = url; row.dataset.type = typeof plan === 'object' ? plan.type || '' : ''; row.dataset.thumbnail = typeof plan === 'object' ? plan.thumbnail_url || '' : '';
-    const label = document.createElement('span'); label.textContent = typeof plan === 'object' && plan.name ? plan.name : url.split('/').pop();
-    const remove = document.createElement('button'); remove.type = 'button'; remove.className = 'secondary'; remove.textContent = 'Remove'; remove.setAttribute('aria-label', 'Remove floor plan'); remove.addEventListener('click', () => row.remove());
-    row.append(label, remove); host.append(row);
+    const path = typeof plan === 'object' ? plan.path : '';
+    if (!url && !path) return;
+    const row = document.createElement('div'); row.className = 'saved-media-row'; row.dataset.url = url || ''; row.dataset.path = path || ''; row.dataset.type = typeof plan === 'object' ? plan.type || '' : ''; row.dataset.thumbnail = typeof plan === 'object' ? plan.thumbnail_url || '' : ''; row.dataset.visible = typeof plan === 'object' && plan.visible === false ? 'false' : 'true'; row.dataset.featured = typeof plan === 'object' && plan.featured === true ? 'true' : 'false';
+    const label = document.createElement('input'); label.className='plan-name'; label.setAttribute('aria-label','Floor plan name'); label.value = typeof plan === 'object' && plan.name ? plan.name : ((url || path).split('/').pop() || 'Floor plan');
+    const visibility = document.createElement('label'); visibility.className='plan-visibility'; visibility.innerHTML='<input type="checkbox" aria-label="Show this floor plan publicly"> Show on listing'; visibility.querySelector('input').checked=row.dataset.visible==='true'; visibility.querySelector('input').addEventListener('change',()=>row.dataset.visible=visibility.querySelector('input').checked?'true':'false');
+    const featured = document.createElement('label'); featured.className='plan-featured'; featured.innerHTML='<input type="checkbox" aria-label="Feature this floor plan for its configuration"> Featured plan'; featured.querySelector('input').checked=row.dataset.featured==='true'; featured.querySelector('input').addEventListener('change',()=>{if(featured.querySelector('input').checked){row.parentElement.querySelectorAll('.saved-media-row').forEach(other=>{if(other!==row){other.dataset.featured='false';other.querySelector('.plan-featured input').checked=false;}});row.dataset.visible='true';visibility.querySelector('input').checked=true;}row.dataset.featured=featured.querySelector('input').checked?'true':'false';});
+    const order = document.createElement('span'); order.className='plan-order'; order.textContent='';
+    const up = document.createElement('button'); up.type='button'; up.className='secondary'; up.textContent='Move up'; up.setAttribute('aria-label','Move floor plan up'); up.addEventListener('click',()=>{const prev=row.previousElementSibling;if(prev)row.parentElement.insertBefore(row,prev);});
+    const down = document.createElement('button'); down.type='button'; down.className='secondary'; down.textContent='Move down'; down.setAttribute('aria-label','Move floor plan down'); down.addEventListener('click',()=>{const next=row.nextElementSibling;if(next)row.parentElement.insertBefore(next,row);});
+    const moveLabel=document.createElement('label');moveLabel.className='plan-move-label';moveLabel.textContent='Configuration';const move=document.createElement('select');move.className='plan-move';moveLabel.append(move);
+    const replaceLabel=document.createElement('label');replaceLabel.className='plan-replace-label';replaceLabel.textContent='Replace file';const replacement=document.createElement('input');replacement.type='file';replacement.className='plan-replacement';replacement.dataset.mediaKind='floor-plan';replacement.accept='image/png,image/jpeg,image/webp,image/avif,application/pdf';replaceLabel.append(replacement);
+    const remove = document.createElement('button'); remove.type = 'button'; remove.className = 'secondary'; remove.textContent = 'Remove from listing'; remove.setAttribute('aria-label', 'Remove floor plan from listing; keep uploaded file'); remove.addEventListener('click', () => row.remove());
+    move.addEventListener('change',()=>{const target=$('#configurationRows').querySelector(`[data-config-id="${CSS.escape(move.value)}"]`);if(target&&target!==row.closest('.configuration-row')){const destination=target.querySelector('[data-existing-plans]');destination.append(row);if(row.dataset.featured==='true')destination.querySelectorAll('.saved-media-row').forEach(other=>{if(other!==row){other.dataset.featured='false';other.querySelector('.plan-featured input').checked=false;}});}refreshPlanMoves();});
+    row.append(label, visibility, featured, moveLabel, replaceLabel, order, up, down, remove); host.append(row);
   }
+  function refreshPlanMoves(){const rows=[...$('#configurationRows').querySelectorAll('.configuration-row')];rows.forEach(config=>{if(!config.dataset.configId)config.dataset.configId=crypto.randomUUID();config.querySelectorAll('[data-existing-plans] .saved-media-row').forEach(plan=>{const select=plan.querySelector('.plan-move');if(!select)return;select.replaceChildren(...rows.map((target,index)=>{const option=document.createElement('option');option.value=target.dataset.configId;option.textContent=target.querySelector('[data-k="label"]')?.value.trim()||`Configuration ${index+1}`;return option;}));select.value=config.dataset.configId;});});}
   function configRow(c = {}) {
     const row = document.createElement('div'); row.className = 'configuration-row';
     row.innerHTML = `<div class="configuration-fields"><label>Configuration<input data-k="label" value="${esc(c.label || '')}" placeholder="e.g. 2 BHK" required></label><label>Carpet area range<input data-k="area" value="${esc(c.area || '')}" placeholder="e.g. 609–733 sq.ft."></label><label>Starting price (INR)<input data-k="price" type="number" min="0" step="1" value="${esc(c.price ?? '')}" placeholder="e.g. 7768000"></label><label>Bedrooms<input data-k="bedrooms" type="number" min="0" step="1" value="${esc(c.bedrooms ?? '')}"></label></div><div class="configuration-plan-editor"><label>Floor plans for this configuration<input data-k="floor_plan_files" type="file" data-media-kind="floor-plan" accept="image/png,image/jpeg,image/webp,image/avif,application/pdf" multiple><small>Upload one or more approved images or PDFs, up to 10 MB each. Floor-plan originals are never cropped or replaced by thumbnails.</small></label><div class="saved-media-list" data-existing-plans></div><button type="button" class="secondary remove-config" aria-label="Remove configuration">Remove configuration</button></div>`;
     (Array.isArray(c.floor_plans) ? c.floor_plans : []).forEach(plan => planFileRow(row.querySelector('[data-existing-plans]'), plan));
-    row.querySelector('.remove-config').addEventListener('click', () => row.remove());
-    $('#configurationRows').append(row);
+    row.dataset.configId=crypto.randomUUID();row.querySelector('.remove-config').addEventListener('click', () => row.remove());
+    row.querySelector('[data-k="label"]').addEventListener('input',refreshPlanMoves);
+    $('#configurationRows').append(row);refreshPlanMoves();
   }
   function readConfigurations() {
     return [...$('#configurationRows').querySelectorAll('.configuration-row')].map(row => {
       const v = key => row.querySelector(`[data-k="${key}"]`).value.trim();
-      return { row, label:v('label'), area:v('area') || null, price:v('price') ? Number(v('price')) : null, bedrooms:v('bedrooms') ? Number(v('bedrooms')) : null, floor_plans:[...row.querySelectorAll('[data-existing-plans] .saved-media-row')].map(x => ({url:x.dataset.url, name:x.querySelector('span').textContent, type:x.dataset.type || null, thumbnail_url:x.dataset.thumbnail || null})) };
+      return { row, label:v('label'), area:v('area') || null, price:v('price') ? Number(v('price')) : null, bedrooms:v('bedrooms') ? Number(v('bedrooms')) : null, floor_plans:[...row.querySelectorAll('[data-existing-plans] .saved-media-row')].map((x,sort_order) => ({...(x.dataset.url?{url:x.dataset.url}:{}),...(x.dataset.path?{path:x.dataset.path}:{}), name:x.querySelector('.plan-name').value.trim(), type:x.dataset.type || null, thumbnail_url:x.dataset.thumbnail || null, visible:x.dataset.visible==='true', featured:x.dataset.featured==='true', sort_order, rowElement:x})) };
     }).filter(c => c.label);
   }
-  function setConfigurations(items, legacy = {}) { $('#configurationRows').innerHTML = ''; const rows = Array.isArray(items) && items.length ? items : (legacy.property_type ? [{label:legacy.property_type, area:legacy.carpet_area ? `${legacy.carpet_area} ${legacy.area_unit || 'sq.ft.'}` : '', price:legacy.price, bedrooms:legacy.bedrooms}] : [{}]); rows.forEach(configRow); }
+  function setConfigurations(items, legacy = {}) { $('#configurationRows').innerHTML = ''; const rows = Array.isArray(items) && items.length ? items : (legacy.property_type ? [{label:legacy.property_type, area:legacy.carpet_area ? `${legacy.carpet_area} ${legacy.area_unit || 'sq.ft.'}` : '', price:legacy.price, bedrooms:legacy.bedrooms}] : [{}]); rows.forEach(configRow);refreshPlanMoves(); }
   function lifestyleHighlightRow(item = {}) {
     const row = document.createElement('div'); row.className = 'lifestyle-highlight-row'; row.dataset.imageUrl = item.image_url || '';
     row.innerHTML = `<label>Feature title<input data-k="title" value="${esc(item.title || '')}" placeholder="e.g. Sky lounge"></label><label>Short description<input data-k="description" value="${esc(item.description || '')}" placeholder="A calm space above the city"></label><label>Feature image<input data-k="image" type="file" data-media-kind="photo" accept="image/png,image/jpeg,image/webp,image/avif"><small>JPG, PNG, WebP or AVIF · max 10 MB</small></label><button type="button" class="secondary remove-highlight" aria-label="Remove lifestyle highlight">Remove</button>`;
@@ -47,20 +59,33 @@
     if (!db) throw new Error('Admin storage is unavailable.');
     const asset = imagePipeline?.assetFor(file);
     if (!asset) throw new Error("Review and approve " + file.name + " before upload.");
-    const chosen = asset.kind === 'logo' && asset.useCrop && asset.crop ? asset.crop.blob : asset.primary;
-    const baseType = asset.pdf ? 'application/pdf' : asset.kind === 'logo' && asset.useCrop && asset.crop ? asset.crop.type : asset.metrics.outputFormat;
-    const baseExt = asset.pdf ? 'pdf' : asset.kind === 'logo' && asset.useCrop && asset.crop ? asset.crop.ext : asset.metrics.outputExt;
+    const chosen = asset.kind==='floor-plan' ? file : asset.kind === 'logo' && asset.useCrop && asset.crop ? asset.crop.blob : asset.primary;
+    const baseType = asset.kind === 'floor-plan' ? file.type : asset.pdf ? 'application/pdf' : asset.kind === 'logo' && asset.useCrop && asset.crop ? asset.crop.type : asset.metrics.outputFormat;
+    const baseExt = asset.kind === 'floor-plan' ? (file.name.split('.').pop()||'jpg').toLowerCase() : asset.pdf ? 'pdf' : asset.kind === 'logo' && asset.useCrop && asset.crop ? asset.crop.ext : asset.metrics.outputExt;
     const objectBase = category + '/' + crypto.randomUUID();
     async function saveBlob(blob, suffix, ext, type, originalName) {
       const path = objectBase + suffix + '.' + ext;
-      const { error } = await db.storage.from(bucket).upload(path, blob, { upsert:false, contentType:type });
+      const { error } = await db.storage.from(category==='floor-plans'?floorPlanBucket:bucket).upload(path, blob, { upsert:false, contentType:type });
       if (error) throw error;
       uploadedPaths.push(path);
+      if(category==='floor-plans') return path;
       const { data } = db.storage.from(bucket).getPublicUrl(path);
       if (!data?.publicUrl) throw new Error("Could not create a public URL for " + originalName + ".");
       return data.publicUrl;
     }
     const url = await saveBlob(chosen, '', baseExt, baseType, file.name);
+    if(category==='floor-plans') {
+      let thumbnailUrl=null;
+      if(asset.thumbnail){
+        const previewPath='floor-plan-previews/'+crypto.randomUUID()+'.'+(asset.metrics.thumbExt||'webp');
+        const {error}=await db.storage.from(bucket).upload(previewPath,asset.thumbnail,{upsert:false,contentType:asset.metrics.thumbFormat||'image/webp'});
+        if(error)throw error;
+        uploadedPaths.push(previewPath);
+        thumbnailUrl=db.storage.from(bucket).getPublicUrl(previewPath).data?.publicUrl||null;
+        if(!thumbnailUrl)throw new Error('Could not create a public floor-plan preview for '+file.name+'.');
+      }
+      return {path:url,name:file.name,type:file.type,thumbnail_url:thumbnailUrl,visible:true,featured:false,sort_order:0};
+    }
     const originalExt=(file.name.split('.').pop()||'jpg').toLowerCase();
     const originalUrl=asset.kind==='floor-plan'?url:await saveBlob(file, '-original', originalExt, file.type, file.name);
     const thumbnailUrl = asset.thumbnail ? await saveBlob(asset.thumbnail, '-thumb', asset.metrics.thumbExt || 'webp', asset.metrics.thumbFormat || 'image/webp', file.name) : null;
@@ -135,7 +160,7 @@
     (p.lifestyle_highlights||[]).forEach((x,i)=>add('Lifestyle highlight '+(i+1),x.image_url));
     (p.media_assets||[]).forEach((x,i)=>{add('Processed media '+(i+1),x.source_url);add('Original media '+(i+1),x.original_url);add('Thumbnail '+(i+1),x.thumbnail_url);(x.variants||[]).forEach((v,j)=>add('Responsive rendition '+(i+1)+'.'+(j+1),v.url));});
     (p.floor_plans||[]).forEach((x,i)=>add('Additional floor plan '+(i+1),typeof x==='string'?x:x?.url));
-    (p.configurations||[]).forEach(c=>(c.floor_plans||[]).forEach((x,i)=>add((c.label||'Configuration')+' floor plan '+(i+1),typeof x==='string'?x:x?.url)));
+    (p.configurations||[]).forEach(c=>(c.floor_plans||[]).forEach((x,i)=>add((c.label||'Configuration')+' floor plan '+(i+1),typeof x==='string'?x:x?.thumbnail_url||x?.url)));
     if(!entries.length)return; const title=document.createElement('p');title.textContent='Checking '+entries.length+' saved image and plan links…';host.append(title);
     const results=await Promise.all(entries.map(item=>new Promise(resolve=>{const img=new Image();const timer=setTimeout(()=>resolve({...item,ok:false}),8000);img.onload=()=>{clearTimeout(timer);resolve({...item,ok:img.naturalWidth>0});};img.onerror=()=>{clearTimeout(timer);resolve({...item,ok:false});};img.src=item.url;})));
     host.replaceChildren(); const broken=results.filter(x=>!x.ok); const message=document.createElement('p'); message.className=broken.length?'media-health-warning':'media-health-ok'; message.textContent=broken.length?broken.length+' saved image link(s) could not be loaded. Check the URLs before publishing.':'All '+results.length+' saved image links loaded.';host.append(message);
@@ -144,7 +169,7 @@
   function openEditor(p) {
     form.reset(); imagePipeline?.clear(); editing = p || null; checkMediaHealth(p); form.classList.remove('hidden'); $('#editorTitle').textContent = p ? 'Edit project' : 'Add a project';
     setField('id', p?.id); ['project_name','title','developer_name','developer_logo_url','project_logo_url','project_type','location','locality','listing_type','possession_status','rera_id','price','description','payment_plan','image_url','brochure_url','video_url','virtual_tour_url','map_url','latitude','longitude','status'].forEach(k => setField(k, p?.[k]));
-    setField('highlights_text', (p?.project_highlights || []).join('\n')); setField('amenities_text', (p?.amenities || []).join(', ')); setField('floor_plans_text', (p?.floor_plans || []).map(x => typeof x === 'string' ? x : x.url).filter(Boolean).join('\n'));
+    setField('highlights_text', (p?.project_highlights || []).join('\n')); setField('amenities_text', (p?.amenities || []).join(', '));
     setLifestyleHighlights(p?.lifestyle_highlights || []);
     form.elements.featured.checked = !!p?.featured; setConfigurations(p?.configurations || [], p || {}); form.scrollIntoView({behavior:'smooth', block:'start'});
   }
@@ -188,8 +213,13 @@
       const configurations = readConfigurations();
       if (!configurations.length) throw new Error('Add at least one property configuration.');
       for (const item of configurations) {
+        for(let index=0;index<item.floor_plans.length;index++){
+          const plan=item.floor_plans[index],replacement=plan.rowElement?.querySelector('.plan-replacement')?.files?.[0];
+          if(replacement){const uploaded=await uploadFile(replacement,'floor-plans',uploadedPaths,true);uploaded.visible=plan.visible;uploaded.featured=plan.featured;uploaded.sort_order=plan.sort_order;item.floor_plans[index]=uploaded;}
+          else delete plan.rowElement;
+        }
         const input = item.row.querySelector('[data-k="floor_plan_files"]');
-        for (const file of Array.from(input.files || [])) { const uploaded=await uploadFile(file, 'floor-plans', uploadedPaths, true); item.floor_plans.push(uploaded); mediaAssets.push(uploaded.media_asset); }
+        for (const file of Array.from(input.files || [])) { const uploaded=await uploadFile(file, 'floor-plans', uploadedPaths, true); uploaded.sort_order=item.floor_plans.length; item.floor_plans.push(uploaded); }
         delete item.row;
       }
       const highlightRows = readLifestyleHighlights();
@@ -210,7 +240,8 @@
       const primary = configurations[0];
       const amenities = f.get('amenities_text').split(',').map(x=>x.trim()).filter(Boolean);
       const highlights = f.get('highlights_text').split('\n').map(x=>x.trim()).filter(Boolean);
-      const floorPlans = f.get('floor_plans_text').split('\n').map(x=>x.trim()).filter(Boolean).map(url=>({url:validHttpUrl(url,'Floor plan URL')}));
+      // Preserve legacy data without offering a path that exposes newly-entered public URLs.
+      const floorPlans = Array.isArray(editing?.floor_plans) ? editing.floor_plans : [];
       const developerLogoUrl = developerLogo?.url || validHttpUrl(f.get('developer_logo_url'), 'Developer logo URL') || editing?.developer_logo_url || null;
       const projectLogoUrl = projectLogo?.url || validHttpUrl(f.get('project_logo_url'), 'Project logo URL') || editing?.project_logo_url || null;
       const payload = {project_name:f.get('project_name').trim(),title:f.get('title').trim()||f.get('project_name').trim(),developer_name:f.get('developer_name')||null,developer_logo_url:developerLogoUrl,project_logo_url:projectLogoUrl,media_assets:mediaAssets,lifestyle_highlights:lifestyleHighlights,project_type:f.get('project_type')||'residential',location:f.get('location'),locality:f.get('locality')||null,listing_type:f.get('listing_type'),property_type:primary.label,price:f.get('price')?Number(f.get('price')):(primary.price??null),carpet_area:null,area_unit:'sq.ft.',bedrooms:primary.bedrooms??null,bathrooms:null,image_url:validHttpUrl(imageUrl,'Main image URL'),gallery_urls:galleryUrls,description:f.get('description')||null,status:f.get('status'),featured:form.elements.featured.checked,amenities,project_highlights:highlights,payment_plan:f.get('payment_plan')||null,video_url:validHttpUrl(f.get('video_url'),'Video URL'),virtual_tour_url:validHttpUrl(f.get('virtual_tour_url'),'Virtual tour URL'),floor_plans:floorPlans,configurations:configurationsPayload,possession_status:f.get('possession_status')||null,rera_id:f.get('rera_id')||null,map_url:validHttpUrl(f.get('map_url'),'Google Maps URL'),brochure_url:validHttpUrl(f.get('brochure_url'),'Brochure URL'),latitude:f.get('latitude')?Number(f.get('latitude')):null,longitude:f.get('longitude')?Number(f.get('longitude')):null};
@@ -219,7 +250,7 @@
       say('#saveMessage','Project saved successfully.'); form.classList.add('hidden'); editing=null; await loadList(); say('#adminMessage','Project saved.');
     } catch(err) {
       // If the DB save failed after uploads, clean up those new objects to avoid orphaned files.
-      const paths=uploadedPaths.map(x=>typeof x==='string'?x:x.path).filter(Boolean); if (paths.length) await db.storage.from(bucket).remove(paths);
+      const paths=uploadedPaths.map(x=>typeof x==='string'?x:x.path).filter(Boolean); if (paths.length) { const privatePaths=paths.filter(x=>x.startsWith('floor-plans/')); const publicPaths=paths.filter(x=>!x.startsWith('floor-plans/')); if(privatePaths.length)await db.storage.from(floorPlanBucket).remove(privatePaths); if(publicPaths.length)await db.storage.from(bucket).remove(publicPaths); }
       say('#saveMessage',err.message || 'Could not save project.');
     } finally { button.disabled=false; button.textContent='Save project'; }
   });

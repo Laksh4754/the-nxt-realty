@@ -6,6 +6,64 @@
 
   document.querySelectorAll('img').forEach(img=>img.addEventListener('error',()=>{if(!img.isConnected)return;const fallback=document.createElement('span');fallback.className='preview-image-fallback';fallback.setAttribute('role','img');fallback.setAttribute('aria-label',img.alt||'Image unavailable');fallback.textContent='Image temporarily unavailable';img.replaceWith(fallback);},{once:true}));
 
+  document.querySelectorAll('.config-card .price-options').forEach((options, index) => {
+    const rows = [...options.querySelectorAll('a[data-config]')];
+    if (rows.length < 2) return;
+    rows.slice(1).forEach(row => { row.hidden = true; });
+    const toggle = document.createElement('button');
+    toggle.type = 'button';
+    toggle.className = 'price-more-toggle';
+    toggle.setAttribute('aria-expanded', 'false');
+    toggle.setAttribute('aria-controls', `price-options-${index + 1}`);
+    options.id = `price-options-${index + 1}`;
+    toggle.innerHTML = '<span>More sizes</span><span class="price-more-chevron" aria-hidden="true">⌄</span>';
+    toggle.addEventListener('click', () => {
+      const expanded = toggle.getAttribute('aria-expanded') !== 'true';
+      rows.slice(1).forEach(row => { row.hidden = !expanded; });
+      toggle.setAttribute('aria-expanded', String(expanded));
+      toggle.querySelector('span').textContent = expanded ? 'Fewer sizes' : 'More sizes';
+    });
+    options.append(toggle);
+  });
+
+  const carousel = document.querySelector('[data-carousel]');
+  if (carousel) {
+    const slides = [...carousel.querySelectorAll('.hero-slide')];
+    const dots = [...carousel.querySelectorAll('[data-carousel-slide]')];
+    const count = carousel.querySelector('.carousel-count');
+    const credit = carousel.querySelector('.photo-credit');
+    let activeSlide = 0;
+    function showSlide(index) {
+      activeSlide = (index + slides.length) % slides.length;
+      slides.forEach((slide, position) => {
+        const active = position === activeSlide;
+        slide.classList.toggle('is-active', active);
+        slide.setAttribute('aria-hidden', String(!active));
+      });
+      dots.forEach((dot, position) => {
+        const active = position === activeSlide;
+        dot.classList.toggle('is-active', active);
+        if (active) dot.setAttribute('aria-current', 'true');
+        else dot.removeAttribute('aria-current');
+      });
+      if (count) count.textContent = `${String(activeSlide + 1).padStart(2, '0')} / ${String(slides.length).padStart(2, '0')}`;
+      if (credit) credit.textContent = slides[activeSlide].querySelector('figcaption')?.textContent || '';
+    }
+    carousel.querySelector('[data-carousel-prev]')?.addEventListener('click', () => showSlide(activeSlide - 1));
+    carousel.querySelector('[data-carousel-next]')?.addEventListener('click', () => showSlide(activeSlide + 1));
+    dots.forEach(dot => dot.addEventListener('click', () => showSlide(Number(dot.dataset.carouselSlide))));
+    let touchStartX = null;
+    carousel.addEventListener('touchstart', event => {
+      touchStartX = event.changedTouches[0]?.clientX ?? null;
+    }, { passive: true });
+    carousel.addEventListener('touchend', event => {
+      if (touchStartX === null) return;
+      const distance = event.changedTouches[0].clientX - touchStartX;
+      if (Math.abs(distance) > 45) showSlide(activeSlide + (distance < 0 ? 1 : -1));
+      touchStartX = null;
+    }, { passive: true });
+  }
+
   const modalTitle = dialog.querySelector('#modal-title');
   const defaultTitle = modalTitle.innerHTML;
   const previewNote = dialog.querySelector('.preview-note');
@@ -23,11 +81,13 @@
   let pendingMapIntent = null;
 
   function selectedConfiguration(source) {
+    const direct = source.dataset.config?.trim();
+    if (direct) return direct;
     const card = source.closest('.config-card, .plan-card');
-    return card?.querySelector('.config-title')?.textContent.trim()
+    const label = card?.querySelector('.config-title')?.textContent.trim()
       || card?.querySelector('.plan-caption b')?.textContent.match(/\b\d+(?:\.\d+)?\s*BHK\b/i)?.[0]
-      || source.dataset.config
       || '';
+    return [...config.options].find(option => option.value.startsWith(label + ' · '))?.value || label;
   }
 
   function openEnquiry(source, explicitTopic = '', options = {}) {

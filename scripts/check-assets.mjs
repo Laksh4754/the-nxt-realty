@@ -40,6 +40,32 @@ for (const item of references) {
   }
 }
 
+const previewPath = path.join(root, 'listing-preview.html');
+if (fs.existsSync(previewPath)) {
+  const previewHtml = fs.readFileSync(previewPath, 'utf8').replace(/<!--[\s\S]*?-->/g, '');
+  for (const match of previewHtml.matchAll(/<(?:img|script|link)\b[^>]*>/gi)) {
+    const tag = match[0];
+    const value = tag.match(/\b(?:src|href)\s*=\s*["']([^"']+)["']/i)?.[1];
+    if (!value || /^[a-z][a-z\d+.-]*:/i.test(value) || value.startsWith('//') || value.startsWith('#')) continue;
+    let localPath;
+    try { localPath = decodeURIComponent(new URL(value, 'http://localhost/').pathname).replace(/^\//, ''); }
+    catch { missingFiles.push(value); continue; }
+    const absolutePath = path.resolve(root, localPath);
+    if (!absolutePath.startsWith(root + path.sep) || !fs.existsSync(absolutePath) || !fs.statSync(absolutePath).isFile()) {
+      missingFiles.push(localPath || value);
+    }
+  }
+  const appMarkup = [previewHtml, fs.readFileSync(path.join(root, 'property.js'), 'utf8')].join('\n');
+  if (/assets\/floor-plans\//i.test(appMarkup)) missingFiles.push('Floor-plan originals must not be referenced by public page markup.');
+  if (/assets\/floor-plan-previews\//i.test(appMarkup)) missingFiles.push('Floor-plan preview files must be generated from blurred uploads or abstract CSS art.');
+  const vercelIgnore = fs.existsSync(path.join(root, '.vercelignore')) ? fs.readFileSync(path.join(root, '.vercelignore'), 'utf8') : '';
+  if (!/^assets\/floor-plans\/\*\*\s*$/m.test(vercelIgnore)) missingFiles.push('.vercelignore must exclude the retained floor-plan source folder from public preview uploads.');
+  if (!/^assets\/floor-plan-previews\/\*\*\s*$/m.test(vercelIgnore)) missingFiles.push('.vercelignore must exclude retained floor-plan preview images from public deployments.');
+  const gitignore = fs.existsSync(path.join(root, '.gitignore')) ? fs.readFileSync(path.join(root, '.gitignore'), 'utf8') : '';
+  if (!/^assets\/floor-plans\/\s*$/m.test(gitignore)) missingFiles.push('.gitignore must exclude retained full-resolution floor-plan sources from the public repository.');
+  if (!/^assets\/floor-plan-previews\/\s*$/m.test(gitignore)) missingFiles.push('.gitignore must exclude retained floor-plan preview bitmaps from the public repository.');
+}
+
 if (missing.length || missingFiles.length) {
   if (missing.length) console.error('Asset check failed: index.html is missing required references: ' + missing.join(', '));
   if (missingFiles.length) console.error('Asset check failed: referenced local files are missing: ' + [...new Set(missingFiles)].join(', '));
