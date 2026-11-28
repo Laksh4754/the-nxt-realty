@@ -152,7 +152,7 @@
     if (error) { say('#leadList', `Could not load enquiries: ${error.message}`); return; }
     $('#leadList').innerHTML = (data || []).map(l => `<article class="admin-row lead-row"><div><strong>${esc(l.name)} · ${esc(l.phone)}</strong><small>${esc(l.requirement || 'Enquiry')} · ${esc(l.preferred_location || '')} · ${l.created_at ? new Date(l.created_at).toLocaleString() : ''}</small><small>${esc(l.message || '')}</small></div><div><select data-lead-status="${esc(l.id)}" aria-label="Lead status"><option value="new" ${l.status==='new'?'selected':''}>New</option><option value="contacted" ${l.status==='contacted'?'selected':''}>Contacted</option><option value="site_visit" ${l.status==='site_visit'?'selected':''}>Site visit</option><option value="qualified" ${l.status==='qualified'?'selected':''}>Qualified</option><option value="closed" ${l.status==='closed'?'selected':''}>Closed</option></select><a class="small-link" href="https://wa.me/${String(l.phone).replace(/\D/g,'')}" target="_blank" rel="noopener">WhatsApp ↗</a></div></article>`).join('') || '<p>No website enquiries yet.</p>';
   }
-  function setField(name, value) { if (form.elements[name]) form.elements[name].value = value ?? ''; }
+  function setField(name, value) { if (form.elements[name] && value !== undefined && value !== null) form.elements[name].value = value; }
   async function checkMediaHealth(p) {
     const host=$('#mediaHealthWarnings'); if(!host)return; host.replaceChildren(); if(!p)return;
     const entries=[]; const add=(label,url)=>{if(url&&/^https?:\/\//i.test(url)&&!/(?:\.pdf)(?:[?#]|$)/i.test(url)&&!entries.some(x=>x.url===url))entries.push({label,url});};
@@ -257,3 +257,4 @@
   async function boot() { if (!db) { loginPanel.classList.remove('hidden'); say('#loginMessage','Configure Supabase in config.js to activate the admin dashboard.'); return; } await requireAdmin(); db.auth.onAuthStateChange((_event,session) => { if (session) showDashboard(session.user); else { loginPanel.classList.remove('hidden'); dashboard.classList.add('hidden'); } }); }
   boot();
 })();
+
