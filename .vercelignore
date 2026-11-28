@@ -1,0 +1,9 @@
+work/
+.env
+.env.*
+.git/
+assets/floor-plans/**
+assets/floor-plan-previews/**
+supabase/**
+FLOOR-PLAN-ACCESS.md
+debug.log

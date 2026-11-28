@@ -14,7 +14,7 @@ create table if not exists public.properties (
  price numeric(14,2), carpet_area numeric(10,2), area_unit text not null default 'sq.ft.',
  bedrooms integer, bathrooms integer, description text, image_url text, gallery_urls text[] not null default '{}',
  amenities text[] not null default '{}', possession_status text, rera_id text, map_url text, brochure_url text,
- latitude double precision, longitude double precision, developer_name text, project_highlights text[] not null default '{}', payment_plan text, video_url text, virtual_tour_url text, floor_plans jsonb not null default '[]'::jsonb, configurations jsonb not null default '[]'::jsonb, project_type text not null default 'residential', featured boolean not null default false,
+ latitude double precision, longitude double precision, developer_name text, developer_logo_url text, project_logo_url text, lifestyle_highlights jsonb not null default '[]'::jsonb, media_assets jsonb not null default '[]'::jsonb, project_highlights text[] not null default '{}', payment_plan text, video_url text, virtual_tour_url text, floor_plans jsonb not null default '[]'::jsonb, configurations jsonb not null default '[]'::jsonb, project_type text not null default 'residential', featured boolean not null default false,
  status text not null default 'draft' check (status in ('draft','published','archived')),
  created_at timestamptz not null default now(), updated_at timestamptz not null default now()
 );
@@ -27,6 +27,10 @@ alter table public.properties add column if not exists map_url text;
 alter table public.properties add column if not exists brochure_url text;
 alter table public.properties add column if not exists latitude double precision;
 alter table public.properties add column if not exists longitude double precision;
+alter table public.properties add column if not exists developer_logo_url text;
+alter table public.properties add column if not exists project_logo_url text;
+alter table public.properties add column if not exists lifestyle_highlights jsonb not null default '[]'::jsonb;
+alter table public.properties add column if not exists media_assets jsonb not null default '[]'::jsonb;
 
 create table if not exists public.leads (
  id uuid primary key default gen_random_uuid(), name text not null, phone text not null,
@@ -36,9 +40,19 @@ create table if not exists public.leads (
  created_at timestamptz not null default now(), updated_at timestamptz not null default now()
 );
 
-create or replace function public.is_nxt_admin() returns boolean language sql stable security definer set search_path=public as $$
+create schema if not exists private;
+revoke all on schema private from public, anon, authenticated;
+grant usage on schema private to authenticated;
+create or replace function private.is_nxt_admin() returns boolean language sql stable security definer set search_path=pg_catalog as $$
  select exists(select 1 from public.admin_users where user_id=(select auth.uid()));
 $$;
+revoke all on function private.is_nxt_admin() from public, anon, authenticated;
+grant execute on function private.is_nxt_admin() to authenticated;
+create or replace function public.is_nxt_admin() returns boolean language sql stable security invoker set search_path=pg_catalog as $$
+ select private.is_nxt_admin();
+$$;
+revoke all on function public.is_nxt_admin() from public, anon;
+grant execute on function public.is_nxt_admin() to authenticated;
 alter table public.admin_users enable row level security;
 alter table public.properties enable row level security;
 alter table public.leads enable row level security;
@@ -81,7 +95,7 @@ grant insert, select, update, delete on public.properties to authenticated;
 grant insert on public.leads to anon, authenticated;
 grant select, update, delete on public.leads to authenticated;
 grant select on public.admin_users to authenticated;
-grant execute on function public.is_nxt_admin() to anon, authenticated;
+grant execute on function public.is_nxt_admin() to authenticated;
 
 -- After creating the admin in Authentication > Users, allow that UUID to manage listings and leads:
 -- insert into public.admin_users(user_id) values ('YOUR-AUTH-USER-UUID');

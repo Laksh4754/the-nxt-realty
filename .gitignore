@@ -1,6 +1,14 @@
+work/
 .env
 .env.*
 !.env.example
 node_modules/
+.cache/
+test-results/
+playwright-report/
 .DS_Store
 Thumbs.db
+.vercel/
+debug.log
+assets/floor-plans/
+assets/floor-plan-previews/
